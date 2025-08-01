@@ -52,15 +52,15 @@
 
     data() {
       return {
-        sortId: this.$route.query.sortId,
+        categoryId: this.$route.query.categoryId || this.$route.query.sortId, // 兼容旧的sortId参数
         labelId: this.$route.query.labelId,
         sort: null,
         pagination: {
-          current: 1,
-          size: 10,
+          page: 1,
+          pageSize: 10,
           total: 0,
           searchKey: "",
-          sortId: this.$route.query.sortId,
+          categoryId: this.$route.query.categoryId || this.$route.query.sortId,
           labelId: this.$route.query.labelId
         },
         articles: []
@@ -72,15 +72,15 @@
     watch: {
       $route() {
         this.pagination = {
-          current: 1,
-          size: 10,
+          page: 1,
+          pageSize: 10,
           total: 0,
           searchKey: "",
-          sortId: this.$route.query.sortId,
+          categoryId: this.$route.query.categoryId || this.$route.query.sortId,
           labelId: this.$route.query.labelId
         };
         this.articles.splice(0, this.articles.length);
-        this.sortId = this.$route.query.sortId;
+        this.categoryId = this.$route.query.categoryId || this.$route.query.sortId;
         this.labelId = this.$route.query.labelId;
         this.getSort();
         this.getArticles();
@@ -97,7 +97,7 @@
 
     methods: {
       pageArticles() {
-        this.pagination.current = this.pagination.current + 1;
+        this.pagination.page = this.pagination.page + 1;
         this.getArticles();
       },
 
@@ -105,7 +105,7 @@
         let sortInfo = this.$store.state.sortInfo;
         if (!this.$common.isEmpty(sortInfo)) {
           let sortArray = sortInfo.filter(f => {
-            return f.id === parseInt(this.sortId);
+            return f.id === parseInt(this.categoryId);
           });
           if (!this.$common.isEmpty(sortArray)) {
             this.sort = sortArray[0];
@@ -115,11 +115,11 @@
       listArticle(label) {
         this.labelId = label.id;
         this.pagination = {
-          current: 1,
-          size: 10,
+          page: 1,
+          pageSize: 10,
           total: 0,
           searchKey: "",
-          sortId: this.$route.query.sortId,
+          categoryId: this.categoryId,
           labelId: label.id
         };
         this.articles.splice(0, this.articles.length);
@@ -128,10 +128,39 @@
         });
       },
       getArticles() {
-        this.$http.post(this.$constant.baseURL + "/article/listArticle", this.pagination)
+        const params = {
+          page: this.pagination.page,
+          pageSize: this.pagination.pageSize
+        };
+        
+        if (this.pagination.categoryId) {
+          params.categoryId = this.pagination.categoryId;
+        }
+        
+        // 注意：后端暂时没有labelId参数，这里先注释掉
+        // if (this.pagination.labelId) {
+        //   params.labelId = this.pagination.labelId;
+        // }
+        
+        this.$http.get(this.$constant.baseURL + "/article/page", params)
           .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
-              this.articles = this.articles.concat(res.data.records);
+            if (res.code === 200 && !this.$common.isEmpty(res.data)) {
+              // 处理文章数据，确保格式正确
+              const articles = res.data.records.map(article => ({
+                id: article.id,
+                title: article.title,
+                content: article.content || article.summary || '暂无内容摘要',
+                cover: article.cover || require('@/assets/images/bg1.png'),
+                categoryId: article.categoryId,
+                categoryName: article.categoryName || '未分类',
+                authorName: article.authorName || 'Diamond',
+                tags: article.tags || [],
+                hasVideo: article.hasVideo || false,
+                createTime: article.createTime,
+                updateTime: article.updateTime
+              }));
+              
+              this.articles = this.articles.concat(articles);
               this.pagination.total = res.data.total;
             }
           })

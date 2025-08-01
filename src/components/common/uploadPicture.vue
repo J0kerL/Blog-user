@@ -111,7 +111,7 @@
 
         let key = this.prefix + "/" + (!this.$common.isEmpty(this.$store.state.currentUser.username) ? (this.$store.state.currentUser.username.replace(/[^a-zA-Z]/g, '') + this.$store.state.currentUser.id) : (this.$store.state.currentAdmin.username.replace(/[^a-zA-Z]/g, '') + this.$store.state.currentAdmin.id)) + new Date().getTime() + Math.floor(Math.random() * 1000) + suffix;
 
-        if (this.storeType === "local") {
+        if (this.storeType === "local" || this.storeType === "aliyun") {
           let fd = new FormData();
           fd.append("file", options.file);
           fd.append("originalName", options.file.name);
@@ -120,7 +120,7 @@
           fd.append("type", this.prefix);
           fd.append("storeType", this.storeType);
 
-          return this.$http.upload(this.$constant.baseURL + "/resource/upload", fd, this.isAdmin, options);
+          return this.$http.upload(this.$constant.baseURL + "/file/upload", fd, this.isAdmin, options);
         } else if (this.storeType === "qiniu") {
           const xhr = new XMLHttpRequest();
           xhr.open('get', this.$constant.baseURL + "/qiniu/getUpToken?key=" + key, false);
@@ -155,6 +155,9 @@
         let url;
         if (this.storeType === "local") {
           url = response.data;
+        } else if (this.storeType === "aliyun") {
+          url = response.data; // 阿里云OSS返回的完整URL
+          this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "aliyun", this.isAdmin);
         } else if (this.storeType === "qiniu") {
           url = this.$store.state.sysConfig['qiniu.downloadUrl'] + response.key;
           this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "qiniu", this.isAdmin);

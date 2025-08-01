@@ -176,18 +176,23 @@
         this.getComments(this.pagination);
       },
       getTotal() {
-        this.$http.get(this.$constant.baseURL + "/comment/getCommentCount", {source: this.source, type: this.type})
-          .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
-              this.total = res.data;
-            }
-          })
-          .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
-          });
+        // 后端暂未实现评论数量接口，使用虚拟数据
+        // 可以根据评论列表的长度来估算总数
+        this.total = this.comments.length || 0;
+        
+        // 如果需要更准确的数量，可以在获取评论列表时从分页信息中获取
+        // this.$http.get(this.$constant.baseURL + "/comment/getCommentCount", {source: this.source, type: this.type})
+        //   .then((res) => {
+        //     if (!this.$common.isEmpty(res.data)) {
+        //       this.total = res.data;
+        //     }
+        //   })
+        //   .catch((error) => {
+        //     this.$message({
+        //       message: error.message,
+        //       type: "error"
+        //     });
+        //   });
       },
       toChildPage(floorComment) {
         floorComment.childComments.current += 1;
@@ -218,7 +223,7 @@
         });
       },
       getComments(pagination, floorComment = {}, isToPage = false) {
-        this.$http.post(this.$constant.baseURL + "/comment/listComment", pagination)
+        this.$http.get(this.$constant.baseURL + "/comment/page", pagination)
           .then((res) => {
             if (!this.$common.isEmpty(res.data) && !this.$common.isEmpty(res.data.records)) {
               if (this.$common.isEmpty(floorComment)) {
@@ -256,7 +261,7 @@
           commentContent: commentContent
         };
 
-        this.$http.post(this.$constant.baseURL + "/comment/saveComment", comment)
+        this.$http.post(this.$constant.baseURL + "/comment/add", comment)
           .then((res) => {
             this.$message({
               type: 'success',
@@ -292,7 +297,7 @@
 
         let floorComment = this.floorComment;
 
-        this.$http.post(this.$constant.baseURL + "/comment/saveComment", comment)
+        this.$http.post(this.$constant.baseURL + "/comment/add", comment)
           .then((res) => {
             let pagination = {
               current: 1,

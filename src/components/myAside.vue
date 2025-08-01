@@ -3,37 +3,34 @@
     <div class="myAside-container">
       <!-- 网站信息 -->
       <div v-if="!$common.mobile()" class="card-content1 shadow-box background-opacity">
-        <el-avatar style="margin-top: 20px" class="user-avatar" :size="120" :src="webInfo.avatar"></el-avatar>
-        <div class="web-name">{{webInfo.webName}}</div>
+        <el-avatar style="margin-top: 20px" class="user-avatar" :size="120"
+          :src="!$common.isEmpty($store.state.currentUser) ? $store.state.currentUser.avatar : 'https://diamond-blog.oss-cn-beijing.aliyuncs.com/defaultAvatar.jpg'"></el-avatar>
+        <div class="web-name">{{ webInfo.webName }}</div>
         <div class="web-info">
           <div class="blog-info-box">
             <span>文章</span>
-            <span class="blog-info-num">{{ $store.getters.articleTotal }}</span>
+            <span class="blog-info-num">{{ dashboardStats.articleCount || 0 }}</span>
           </div>
           <div class="blog-info-box">
-            <span>分类</span>
-            <span class="blog-info-num">{{ sortInfo.length }}</span>
+            <span>评论</span>
+            <span class="blog-info-num">{{ dashboardStats.commentCount || 0 }}</span>
           </div>
           <div class="blog-info-box">
             <span>访问量</span>
-            <span class="blog-info-num">{{ webInfo.historyAllCount }}</span>
+            <span class="blog-info-num">{{ dashboardStats.viewCount || 0 }}</span>
           </div>
         </div>
-        <a class="collection-btn" @click="showTip()">
-          <i class="el-icon-star-off" style="margin-right: 2px"></i>朋友圈
-        </a>
+
       </div>
 
       <!-- 搜索 -->
       <div style="padding: 15px;border-radius: 10px;animation: hideToShow 1s ease-in-out"
-           class="shadow-box background-opacity wow">
+        class="shadow-box background-opacity wow">
         <div style="color: var(--lightGreen);font-size: 20px;font-weight: bold;margin-bottom: 10px">
           搜索
         </div>
         <div style="display: flex">
-          <input class="ais-SearchBox-input" type="text"
-                 v-model="articleSearch"
-                 placeholder="搜索文章" maxlength="32">
+          <input class="ais-SearchBox-input" type="text" v-model="articleSearch" placeholder="搜索文章" maxlength="32">
           <div class="ais-SearchBox-submit" @click="selectArticle()">
             <svg style="margin-top: 3.5px;margin-left: 18px" viewBox="0 0 1024 1024" width="20" height="20">
               <path
@@ -47,22 +44,23 @@
         </div>
       </div>
 
-      <!-- 推荐文章 -->
-      <div v-if="!$common.isEmpty(recommendArticles)"
-           style="padding: 25px;border-radius: 10px;animation: hideToShow 1s ease-in-out"
-           class="shadow-box background-opacity wow">
+
+
+      <!-- 最新文章 -->
+      <div v-if="!$common.isEmpty(latestArticles)"
+        style="padding: 25px;border-radius: 10px;animation: hideToShow 1s ease-in-out"
+        class="shadow-box background-opacity wow">
         <div class="card-content2-title">
-          <span>🔥推荐文章</span>
+          <span>📰最新文章</span>
         </div>
-        <div v-for="(article, index) in recommendArticles"
-             :key="index"
-             @click="$router.push({path: `/article/${article.id}`})">
+        <div v-for="(article, index) in latestArticles" :key="index"
+          @click="$router.push({ path: `/article/${article.id}` })">
           <div class="aside-post-detail">
             <div class="aside-post-image">
-              <el-image lazy class="my-el-image" :src="article.articleCover" fit="cover">
+              <el-image lazy class="my-el-image" :src="article.cover || article.articleCover" fit="contain">
                 <div slot="error" class="image-slot">
                   <div class="error-aside-image">
-                    {{article.username}}
+                    {{ article.authorName || article.username }}
                   </div>
                 </div>
               </el-image>
@@ -75,416 +73,354 @@
               </div>
             </div>
             <div class="aside-post-title">
-              {{ article.articleTitle }}
+              {{ article.title || article.articleTitle }}
             </div>
-          </div>
-          <div class="aside-post-date">
-            <i class="el-icon-date" style="color: var(--greyFont)"></i>{{ article.createTime }}
           </div>
         </div>
       </div>
 
-      <!-- 速览 -->
-      <div v-if="!$common.mobile()" class="selectSort">
-        <div v-for="(sort, index) in sortInfo"
-             @click="selectSort(sort)"
-             :key="index"
-             :style="{background: $constant.sortColor[index % $constant.sortColor.length]}"
-             class="shadow-box-mini background-opacity wow"
-             style="position: relative;padding: 10px 25px 15px;border-radius: 10px;animation: hideToShow 1s ease-in-out;cursor: pointer;color: var(--white)">
-          <div>速览</div>
-          <div class="sort-name">
-            {{sort.sortName}}
-          </div>
-          <div style="font-weight: bold;margin-top: 15px;white-space: nowrap;text-overflow: ellipsis;overflow: hidden">
-            {{sort.sortDescription}}
-          </div>
-        </div>
-      </div>
+
 
       <!-- 分类 -->
       <div class="shadow-box background-opacity wow"
-           v-if="false"
-           style="padding: 25px 25px 5px;border-radius: 10px;animation: hideToShow 1s ease-in-out">
+        style="padding: 25px 25px 5px;border-radius: 10px;animation: hideToShow 1s ease-in-out">
         <div class="card-content2-title">
           <i class="el-icon-folder-opened card-content2-icon"></i>
           <span>分类</span>
         </div>
-        <div v-for="(sort, index) in sortInfo"
-             :key="index"
-             class="post-sort"
-             @click="$router.push({path: '/sort', query: {sortId: sort.id}})">
+        <div v-for="(sort, index) in sortInfo" :key="index" class="post-sort" @click="selectSort(sort)">
           <div>
-            <span v-for="(s, i) in sort.sortName.split('')" :key="i">{{ s }}</span>
+            <span v-for="(s, i) in sort.name.split('')" :key="i">{{ s }}</span>
           </div>
         </div>
       </div>
 
-      <!-- 赞赏 -->
-      <div class="shadow-box-mini background-opacity wow admire-box"
-           v-if="!$common.isEmpty(admires) && false">
-        <div style="font-weight: bold;margin-bottom: 20px">🧨赞赏名单</div>
-        <div>
-          <vue-seamless-scroll :data="admires" style="height: 200px;overflow: hidden">
-            <div v-for="(item, i) in admires"
-                 style="display: flex;justify-content: space-between"
-                 :key="i">
-              <div style="display: flex">
-                <el-avatar style="margin-bottom: 10px" :size="36" :src="item.avatar"></el-avatar>
-                <div style="margin-left: 10px;height: 36px;line-height: 36px;overflow: hidden;max-width: 80px">
-                  {{ item.username }}
-                </div>
-              </div>
-              <div style="height: 36px;line-height: 36px">
-                {{ item.admire }}元
-              </div>
-            </div>
-          </vue-seamless-scroll>
-        </div>
-        <div class="admire-btn" @click="showAdmire()">
-          赞赏
-        </div>
-      </div>
+
     </div>
 
-    <!-- 微信 -->
-    <el-dialog title="赞赏"
-               :visible.sync="showAdmireDialog"
-               width="25%"
-               :append-to-body="true"
-               destroy-on-close
-               center>
-      <div>
-        <div class="admire-image"></div>
-        <div>
-          <div class="admire-content">1. 感谢老铁送来的666</div>
-          <div class="admire-content">2. 申请通过后会加博客交流群，不需要加群或者退群后会定期清理好友（强迫症福利）</div>
-        </div>
-      </div>
-    </el-dialog>
+
   </div>
 </template>
 
 <script>
-  import vueSeamlessScroll from "vue-seamless-scroll";
+import vueSeamlessScroll from "vue-seamless-scroll";
 
-  export default {
-    components: {
-      vueSeamlessScroll
-    },
-    data() {
-      return {
-        pagination: {
-          current: 1,
-          size: 5,
-          recommendStatus: true
-        },
-        recommendArticles: [],
-        admires: [],
-        showAdmireDialog: false,
-        articleSearch: ""
-      }
-    },
-    computed: {
-      webInfo() {
-        return this.$store.state.webInfo;
+export default {
+  components: {
+    vueSeamlessScroll
+  },
+  data() {
+    return {
+      pagination: {
+        page: 1,
+        pageSize: 5
       },
-      sortInfo() {
-        return this.$store.getters.navigationBar;
-      }
-    },
-    created() {
-      this.getRecommendArticles();
-      this.getAdmire();
-    },
-    methods: {
-      selectSort(sort) {
-        this.$emit("selectSort", sort);
+      latestArticles: [],
+      articleSearch: "",
+      dashboardStats: {
+        commentCount: 0,
+        articleCount: 0,
+        viewCount: 0
       },
-      selectArticle() {
-        this.$emit("selectArticle", this.articleSearch);
-      },
-      showAdmire() {
-        if (this.$common.isEmpty(this.$store.state.currentUser)) {
-          this.$message({
-            message: "请先登录！",
-            type: "error"
-          });
-          return;
-        }
-
-        this.showAdmireDialog = true;
-      },
-      getAdmire() {
-        this.$http.get(this.$constant.baseURL + "/webInfo/getAdmire")
-          .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
-              this.admires = res.data;
-            }
-          })
-          .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
-          });
-      },
-      getRecommendArticles() {
-        this.$http.post(this.$constant.baseURL + "/article/listArticle", this.pagination)
-          .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
-              this.recommendArticles = res.data.records;
-            }
-          })
-          .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
-          });
-      },
-      showTip() {
-        this.$router.push({path: '/weiYan'});
-      }
+      tagList: [],
+      selectedTag: null
     }
+  },
+  computed: {
+    webInfo() {
+      return this.$store.state.webInfo;
+    },
+    sortInfo() {
+      return this.$store.getters.navigationBar;
+    }
+  },
+  created() {
+    this.getDashboardStats();
+    this.getCategoryList();
+    this.getLatestArticles();
+  },
+  methods: {
+    selectSort(sort) {
+      console.log('侧边栏点击分类:', sort);
+      this.$emit("selectSort", sort);
+    },
+    selectArticle() {
+      this.$emit("selectArticle", this.articleSearch);
+    },
+
+    getLatestArticles() {
+      this.$http.get("/article/page", this.pagination)
+        .then((res) => {
+          if (res.code === 200 && !this.$common.isEmpty(res.data)) {
+            this.latestArticles = res.data.records.map(article => ({
+              id: article.id,
+              title: article.title,
+              articleTitle: article.title,
+              cover: article.cover || require('@/assets/images/bg1.png'),
+              articleCover: article.cover || require('@/assets/images/bg1.png'),
+              authorName: article.authorName || 'Diamond',
+              username: article.authorName || 'Diamond',
+              createTime: article.createTime,
+              hasVideo: article.hasVideo || false
+            }));
+          }
+        })
+        .catch((error) => {
+          console.error("获取最新文章失败:", error);
+        });
+    },
+    showTip() {
+      this.$router.push({ path: '/weiYan' });
+    },
+    // 获取仪表盘统计数据
+    getDashboardStats() {
+      this.$http.get("/dashboard/stats")
+        .then((res) => {
+          if (res.code === 200 && !this.$common.isEmpty(res.data)) {
+            this.dashboardStats = {
+              commentCount: res.data.commentCount || 0,
+              articleCount: res.data.articleCount || 0,
+              viewCount: res.data.viewCount || 0
+            };
+          }
+        })
+        .catch((error) => {
+          console.error("获取仪表盘统计数据失败:", error);
+          // 设置默认值
+          this.dashboardStats = {
+            commentCount: 0,
+            articleCount: 0,
+            viewCount: 0
+          };
+        });
+    },
+
+    // 获取分类列表数据
+    getCategoryList() {
+      this.$http.get("/category/list")
+        .then((res) => {
+          if (res.code === 200 && !this.$common.isEmpty(res.data)) {
+            // 将后端返回的分类数据转换为前端需要的格式并存储到store
+            const categoryData = res.data.map(category => ({
+              id: category.id,
+              name: category.name,
+              sortName: category.name,
+              description: category.description || `${category.name}相关文章`,
+              articleCount: category.articleCount || 0,
+              sortType: 0 // 添加sortType字段，确保能被navigationBar getter过滤到
+            }));
+
+            // 更新store中的分类数据
+            this.$store.commit("loadSortInfo", categoryData);
+          }
+        })
+        .catch((error) => {
+          console.error("获取分类数据失败:", error);
+          // 如果API失败，使用默认分类数据
+          const defaultCategories = [
+            { id: 1, name: "Spring Boot", sortName: "Spring Boot", description: "Spring Boot相关文章", articleCount: 0, sortType: 0 },
+            { id: 2, name: "Vue.js", sortName: "Vue.js", description: "Vue.js相关文章", articleCount: 0, sortType: 0 },
+            { id: 3, name: "MySQL", sortName: "MySQL", description: "MySQL相关文章", articleCount: 0, sortType: 0 },
+            { id: 4, name: "Java", sortName: "Java", description: "Java相关文章", articleCount: 0, sortType: 0 },
+            { id: 5, name: "前端技术", sortName: "前端技术", description: "前端技术相关文章", articleCount: 0, sortType: 0 }
+          ];
+          this.$store.commit("loadSortInfo", defaultCategories);
+        });
+    },
+
   }
+}
 </script>
 
 <style scoped>
+.myAside-container>div:not(:last-child) {
+  margin-bottom: 30px;
+}
 
-  .myAside-container > div:not(:last-child) {
-    margin-bottom: 30px;
-  }
 
-  .selectSort > div:not(:last-child) {
-    margin-bottom: 30px;
-  }
 
-  .card-content1 {
-    background: linear-gradient(-45deg, #e8d8b9, #eccec5, #a3e9eb, #bdbdf0, #eec1ea);
-    background-size: 400% 400%;
-    animation: gradientBG 10s ease infinite;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    border-radius: 10px;
-    position: relative;
-    overflow: hidden;
-  }
+.card-content1 {
+  background: linear-gradient(-45deg, #e8d8b9, #eccec5, #a3e9eb, #bdbdf0, #eec1ea);
+  background-size: 400% 400%;
+  animation: gradientBG 10s ease infinite;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border-radius: 10px;
+  position: relative;
+  overflow: hidden;
+}
 
-  .card-content1 :not(:first-child) {
-    z-index: 10;
-  }
+.card-content1 :not(:first-child) {
+  z-index: 10;
+}
 
-  .web-name {
-    font-size: 30px;
-    font-weight: bold;
-    margin: 20px 0;
-  }
+.web-name {
+  font-size: 30px;
+  font-weight: bold;
+  margin: 15px 0 10px 0;
+}
 
-  .web-info {
-    width: 80%;
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-  }
+.web-info {
+  width: 80%;
+  display: flex;
+  flex-direction: row;
+  justify-content: space-around;
+}
 
-  .blog-info-box {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: space-around;
-  }
+.blog-info-box {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-around;
+}
 
-  .blog-info-num {
-    margin-top: 12px;
-  }
+.blog-info-num {
+  margin-top: 4px;
+  margin-bottom: 8px;
+}
 
-  .collection-btn {
-    position: relative;
-    margin-top: 12px;
-    background: var(--lightGreen);
-    cursor: pointer;
-    width: 65%;
-    height: 35px;
-    border-radius: 1rem;
-    text-align: center;
-    line-height: 35px;
-    color: var(--white);
-    overflow: hidden;
-    z-index: 1;
-    margin-bottom: 25px;
-  }
+.collection-btn {
+  position: relative;
+  margin-top: 12px;
+  background: var(--lightGreen);
+  cursor: pointer;
+  width: 65%;
+  height: 35px;
+  border-radius: 1rem;
+  text-align: center;
+  line-height: 35px;
+  color: var(--white);
+  overflow: hidden;
+  z-index: 1;
+  margin-bottom: 25px;
+}
 
-  .collection-btn::before {
-    background: var(--gradualRed);
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
-    content: "";
-    transform: scaleX(0);
-    transform-origin: 0;
-    transition: transform 0.5s ease-out;
-    transition-timing-function: cubic-bezier(0.45, 1.64, 0.47, 0.66);
-    border-radius: 1rem;
-    z-index: -1;
-  }
+.collection-btn::before {
+  background: var(--gradualRed);
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  content: "";
+  transform: scaleX(0);
+  transform-origin: 0;
+  transition: transform 0.5s ease-out;
+  transition-timing-function: cubic-bezier(0.45, 1.64, 0.47, 0.66);
+  border-radius: 1rem;
+  z-index: -1;
+}
 
-  .collection-btn:hover::before {
-    transform: scaleX(1);
-  }
+.collection-btn:hover::before {
+  transform: scaleX(1);
+}
 
-  .card-content2-title {
-    font-size: 18px;
-    margin-bottom: 20px;
-    color: var(--lightGreen);
-    font-weight: bold;
-  }
+.card-content2-title {
+  font-size: 18px;
+  margin-bottom: 20px;
+  color: var(--lightGreen);
+  font-weight: bold;
+}
 
-  .card-content2-icon {
-    color: var(--red);
-    margin-right: 5px;
-    animation: scale 1s ease-in-out infinite;
-  }
+.card-content2-icon {
+  color: var(--red);
+  margin-right: 5px;
+  animation: scale 1s ease-in-out infinite;
+}
 
-  .aside-post-detail {
-    display: flex;
-    cursor: pointer;
-  }
+.aside-post-detail {
+  display: flex;
+  cursor: pointer;
+}
 
-  .aside-post-image {
-    width: 40%;
-    min-height: 50px;
-    border-radius: 6px;
-    margin-right: 8px;
-    overflow: hidden;
-    position: relative;
-  }
+.aside-post-image {
+  width: 40%;
+  min-height: 60px;
+  height: 60px;
+  border-radius: 6px;
+  margin-right: 8px;
+  overflow: hidden;
+  position: relative;
+}
 
-  .error-aside-image {
-    background: var(--themeBackground);
-    color: var(--white);
-    padding: 10px;
-    text-align: center;
-    width: 100%;
-    height: 100%;
-  }
+.aside-post-image .my-el-image {
+  width: 100%;
+  height: 100%;
+}
 
-  .aside-post-title {
-    width: 60%;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
+.aside-post-image .el-image__inner {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain !important;
+}
 
-  .aside-post-date {
-    margin-top: 8px;
-    margin-bottom: 20px;
-    color: var(--greyFont);
-    font-size: 12px;
-  }
+.error-aside-image {
+  background: var(--themeBackground);
+  color: var(--white);
+  padding: 10px;
+  text-align: center;
+  width: 100%;
+  height: 100%;
+}
 
-  .post-sort {
-    border-radius: 1rem;
-    margin-bottom: 15px;
-    line-height: 30px;
-    transition: all 0.3s;
-  }
+.aside-post-title {
+  width: 60%;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
 
-  .post-sort:hover {
-    background: var(--themeBackground);
-    padding: 2px 15px;
-    cursor: pointer;
-    color: var(--white);
-  }
+.aside-post-date {
+  margin-top: 8px;
+  margin-bottom: 20px;
+  color: var(--greyFont);
+  font-size: 12px;
+}
 
-  .sort-name {
-    font-weight: bold;
-    font-size: 25px;
-    margin-top: 15px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
+.post-sort {
+  border-radius: 1rem;
+  margin-bottom: 15px;
+  line-height: 30px;
+  transition: all 0.3s;
+}
 
-  .sort-name:after {
-    top: 74px;
-    width: 22px;
-    left: 26px;
-    height: 2px;
-    background: var(--white);
-    content: "";
-    border-radius: 1px;
-    position: absolute;
-  }
+.post-sort:hover {
+  background: var(--themeBackground);
+  padding: 2px 15px;
+  cursor: pointer;
+  color: var(--white);
+}
 
-  .admire-box {
-    background: var(--springBg) center center / cover no-repeat;
-    padding: 25px;
-    border-radius: 10px;
-    animation: hideToShow 1s ease-in-out;
-  }
 
-  .admire-btn {
-    padding: 13px 15px;
-    background: var(--maxLightRed);
-    border-radius: 3rem;
-    color: var(--white);
-    width: 100px;
-    user-select: none;
-    cursor: pointer;
-    text-align: center;
-    margin: 20px auto 0;
-    transition: all 1s;
-  }
 
-  .admire-btn:hover {
-    transform: scale(1.2);
-  }
 
-  .admire-image {
-    margin: 0 auto 10px;
-    border-radius: 10px;
-    height: 150px;
-    width: 150px;
-    background: var(--admireImage) center center / cover no-repeat;
-  }
 
-  .admire-content {
-    font-size: 12px;
-    color: var(--maxGreyFont);
-    line-height: 1.5;
-    margin: 5px;
-  }
+.ais-SearchBox-input {
+  padding: 0 14px;
+  height: 30px;
+  width: calc(100% - 50px);
+  outline: 0;
+  border: 2px solid var(--lightGreen);
+  border-right: 0;
+  border-radius: 40px 0 0 40px;
+  color: var(--maxGreyFont);
+  background: var(--white);
+}
 
-  .ais-SearchBox-input {
-    padding: 0 14px;
-    height: 30px;
-    width: calc(100% - 50px);
-    outline: 0;
-    border: 2px solid var(--lightGreen);
-    border-right: 0;
-    border-radius: 40px 0 0 40px;
-    color: var(--maxGreyFont);
-    background: var(--white);
-  }
+.ais-SearchBox-submit {
+  height: 30px;
+  width: 50px;
+  border: 2px solid var(--lightGreen);
+  border-left: 0;
+  border-radius: 0 40px 40px 0;
+  background: var(--white);
+  cursor: pointer;
+}
 
-  .ais-SearchBox-submit {
-    height: 30px;
-    width: 50px;
-    border: 2px solid var(--lightGreen);
-    border-left: 0;
-    border-radius: 0 40px 40px 0;
-    background: var(--white);
-    cursor: pointer;
-  }
-
-  .hasVideo {
-    padding: 2px 10px 0;
-    background: var(--maxMaxWhiteMask);
-    border-radius: 6px;
-  }
-
+.hasVideo {
+  padding: 2px 10px 0;
+  background: var(--maxMaxWhiteMask);
+  border-radius: 6px;
+}
 </style>

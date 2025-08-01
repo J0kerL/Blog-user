@@ -197,7 +197,7 @@
         fd.append("type", "articlePicture");
         fd.append("storeType", storeType);
 
-        if (storeType === "local") {
+        if (storeType === "local" || storeType === "aliyun") {
           this.saveLocal(pos, fd);
         } else if (storeType === "qiniu") {
           this.saveQiniu(pos, fd);
@@ -252,11 +252,14 @@
         this.article.articleCover = res;
       },
       getSortAndLabel() {
-        this.$http.get(this.$constant.baseURL + "/webInfo/listSortAndLabel")
+        // 获取所有分类
+        this.$http.get(this.$constant.baseURL + "/category/list")
           .then((res) => {
             if (!this.$common.isEmpty(res.data)) {
-              this.sorts = res.data.sorts;
-              this.labels = res.data.labels;
+              // 后端返回的是分类列表，将其赋值给sorts
+              this.sorts = res.data;
+              // 标签功能暂时保持空数组，等待后端实现
+              this.labels = [];
               if (!this.$common.isEmpty(this.id)) {
                 this.getArticle();
               }
@@ -270,7 +273,7 @@
           });
       },
       getArticle() {
-        this.$http.get(this.$constant.baseURL + "/admin/article/getArticleById", {id: this.id}, true)
+        this.$http.get(this.$constant.baseURL + "/article/get/" + this.id, {}, true)
           .then((res) => {
             if (!this.$common.isEmpty(res.data)) {
               this.article = res.data;
@@ -294,10 +297,10 @@
         this.$refs[formName].validate((valid) => {
           if (valid) {
             if (this.$common.isEmpty(this.id)) {
-              this.saveArticle(this.article, "/article/saveArticle")
+              this.saveArticle(this.article, "/article/add")
             } else {
               this.article.id = this.id;
-              this.saveArticle(this.article, "/article/updateArticle")
+              this.saveArticle(this.article, "/article/update")
             }
           } else {
             this.$message({
@@ -320,7 +323,9 @@
           type: 'success',
           center: true
         }).then(() => {
-          this.$http.post(this.$constant.baseURL + url, value, true)
+          // 根据URL判断使用POST还是PUT方法
+          const method = url.includes('/add') ? 'post' : 'put';
+          this.$http[method](this.$constant.baseURL + url, value, true)
             .then((res) => {
               this.$message({
                 message: "保存成功！",

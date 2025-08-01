@@ -33,18 +33,6 @@ const routes = [
       name: "love",
       component: () => import('../components/love')
     }, {
-      path: "/favorite",
-      name: "favorite",
-      component: () => import('../components/favorite')
-    }, {
-      path: "/travel",
-      name: "travel",
-      component: () => import('../components/travel')
-    }, {
-      path: "/message",
-      name: "message",
-      component: () => import('../components/message')
-    }, {
       path: "/about",
       name: "about",
       component: () => import('../components/about')
@@ -52,10 +40,6 @@ const routes = [
       path: "/user",
       name: "user",
       component: () => import('../components/user')
-    }, {
-      path: "/letter",
-      name: "letter",
-      component: () => import('../components/letter')
     }]
   },
   {

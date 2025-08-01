@@ -141,7 +141,7 @@
           </div>
           <!-- 分类 -->
           <div class="article-sort">
-            <span @click="$router.push({path: '/sort', query: {sortId: article.sortId, labelId: article.labelId}})">{{ article.sort.sortName +" ▶ "+ article.label.labelName}}</span>
+            <span @click="$router.push({path: '/sort', query: {categoryId: article.categoryId, labelId: article.labelId}})">{{ article.categoryName }}</span>
           </div>
           <!-- 作者信息 -->
           <blockquote>
@@ -513,13 +513,20 @@
         headings.attr('id', (i, id) => id || 'toc-' + i);
       },
       getArticle(password) {
-        this.$http.get(this.$constant.baseURL + "/article/getArticleById", {id: this.id, password: password})
+        this.$http.get(this.$constant.baseURL + "/article/get/" + this.id, {password: password})
           .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
+            if (res.code === 200 && !this.$common.isEmpty(res.data)) {
               this.article = res.data;
+              // 根据后端ArticleVO结构调整字段映射
+              this.article.articleTitle = res.data.title;
+              this.article.articleContent = res.data.content;
+              this.article.articleCover = res.data.cover;
+              this.article.username = res.data.authorName;
+              this.article.userId = res.data.authorId;
+              
               this.getNews();
               const md = new MarkdownIt({breaks: true}).use(require('markdown-it-multimd-table'));
-              this.articleContentHtml = md.render(this.article.articleContent);
+              this.articleContentHtml = md.render(this.article.content);
               this.$nextTick(() => {
                 this.$common.imgShow(".entry-content img");
                 this.highlight();

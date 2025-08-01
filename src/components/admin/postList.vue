@@ -80,8 +80,8 @@
     </el-table>
     <div class="pagination">
       <el-pagination background layout="total, prev, pager, next"
-                     :current-page="pagination.current"
-                     :page-size="pagination.size"
+                     :current-page="pagination.page"
+                     :page-size="pagination.pageSize"
                      :total="pagination.total"
                      @current-change="handlePageChange">
       </el-pagination>
@@ -96,8 +96,8 @@
       return {
         isBoss: this.$store.state.currentAdmin.isBoss,
         pagination: {
-          current: 1,
-          size: 10,
+          page: 1,
+          pageSize: 10,
           total: 0,
           searchKey: "",
           recommendStatus: null,
@@ -132,11 +132,14 @@
 
     methods: {
       getSortAndLabel() {
-        this.$http.get(this.$constant.baseURL + "/webInfo/listSortAndLabel")
+        // 获取所有分类
+        this.$http.get(this.$constant.baseURL + "/category/list")
           .then((res) => {
             if (!this.$common.isEmpty(res.data)) {
-              this.sorts = res.data.sorts;
-              this.labels = res.data.labels;
+              // 后端返回的是分类列表，将其赋值给sorts
+              this.sorts = res.data;
+              // 标签功能暂时保持空数组，等待后端实现
+              this.labels = [];
             }
           })
           .catch((error) => {
@@ -148,8 +151,8 @@
       },
       clearSearch() {
         this.pagination = {
-          current: 1,
-          size: 10,
+          page: 1,
+          pageSize: 10,
           total: 0,
           searchKey: "",
           recommendStatus: null,
@@ -159,13 +162,8 @@
         this.getArticles();
       },
       getArticles() {
-        let url = "";
-        if (this.isBoss) {
-          url = "/admin/article/boss/list";
-        } else {
-          url = "/admin/article/user/list";
-        }
-        this.$http.post(this.$constant.baseURL + url, this.pagination, true)
+        // 使用统一的文章分页接口
+        this.$http.get(this.$constant.baseURL + "/article/page", this.pagination, true)
           .then((res) => {
             if (!this.$common.isEmpty(res.data)) {
               this.articles = res.data.records;
@@ -180,12 +178,12 @@
           });
       },
       handlePageChange(val) {
-        this.pagination.current = val;
+        this.pagination.page = val;
         this.getArticles();
       },
       searchArticles() {
         this.pagination.total = 0;
-        this.pagination.current = 1;
+        this.pagination.page = 1;
         this.getArticles();
       },
       changeStatus(article, flag) {
@@ -236,7 +234,7 @@
           type: 'success',
           center: true
         }).then(() => {
-          this.$http.get(this.$constant.baseURL + "/article/deleteArticle", {id: item.id}, true)
+          this.$http.delete(this.$constant.baseURL + "/article/delete", {ids: item.id}, true)
             .then((res) => {
               this.pagination.current = 1;
               this.getArticles();

@@ -6,7 +6,7 @@
       <div v-show="toolbar.visible || ($common.mobile() || mobile)"
            @mouseenter="hoverEnter = true"
            @mouseleave="hoverEnter = false"
-           :class="[{ enter: toolbar.enter }, { hoverEnter: (hoverEnter || this.$route.path === '/favorite' || this.$route.path === '/travel') && !toolbar.enter }]"
+           :class="[{ enter: toolbar.enter }, { hoverEnter: hoverEnter && !toolbar.enter }]"
            class="toolbar-content myBetween">
         <!-- 网站名称 -->
         <div class="toolbar-title">
@@ -38,8 +38,8 @@
               </li>
               <el-dropdown-menu slot="dropdown">
                 <el-dropdown-item v-for="(sort, index) in sortInfo" :key="index">
-                  <div @click="$router.push({path: '/sort', query: {sortId: sort.id}})">
-                    {{sort.sortName}}
+                  <div @click="$router.push({path: '/sort', query: {categoryId: sort.id}})">
+                    {{sort.name}}
                   </div>
                 </el-dropdown-item>
               </el-dropdown-menu>
@@ -59,26 +59,7 @@
 <!--              </div>-->
 <!--            </li>-->
 
-            <!-- 百宝箱 -->
-            <li @click="$router.push({path: '/favorite'})">
-              <div class="my-menu">
-                🧰 <span>百宝箱</span>
-              </div>
-            </li>
 
-            <!-- 留言 -->
-            <li @click="$router.push({path: '/message'})">
-              <div class="my-menu">
-                📪 <span>留言</span>
-              </div>
-            </li>
-
-            <!-- 聊天室 -->
-            <li @click="goIm()">
-              <div class="my-menu">
-                💬 <span>联系我</span>
-              </div>
-            </li>
 
             <!-- 后台 -->
             <li @click="goAdmin()">
@@ -92,7 +73,7 @@
               <el-dropdown placement="bottom">
                 <el-avatar class="user-avatar" :size="36"
                            style="margin-top: 12px"
-                           :src="!$common.isEmpty($store.state.currentUser)?$store.state.currentUser.avatar:$store.state.webInfo.avatar">
+                           :src="!$common.isEmpty($store.state.currentUser)?$store.state.currentUser.avatar:'https://diamond-blog.oss-cn-beijing.aliyuncs.com/defaultAvatar.jpg'">
                 </el-avatar>
 
                 <el-dropdown-menu slot="dropdown">
@@ -105,7 +86,7 @@
                   </el-dropdown-item>
                   <el-dropdown-item @click.native="$router.push({path: '/user'})"
                                     v-if="$common.isEmpty($store.state.currentUser)">
-                    <i class="fa fa-sign-in" aria-hidden="true"></i> <span>登陆</span>
+                    <i class="fa fa-sign-in" aria-hidden="true"></i> <span>登录</span>
                   </el-dropdown-item>
                 </el-dropdown-menu>
               </el-dropdown>
@@ -189,8 +170,8 @@
               <div v-for="(menu, index) in sortInfo"
                    :key="index"
                    class="sortMenu"
-                   @click="smallMenu({path: '/sort', query: {sortId: menu.id}})">
-                {{menu.sortName}}
+                   @click="smallMenu({path: '/sort', query: {categoryId: menu.id}})">
+                {{menu.name}}
               </div>
             </div>
           </li>
@@ -209,26 +190,7 @@
 <!--            </div>-->
 <!--          </li>-->
 
-          <!-- 百宝箱 -->
-          <li @click="smallMenu({path: '/favorite'})">
-            <div>
-              🧰 <span>百宝箱</span>
-            </div>
-          </li>
 
-          <!-- 留言 -->
-          <li @click="smallMenu({path: '/message'})">
-            <div>
-              📪 <span>留言</span>
-            </div>
-          </li>
-
-          <!-- 聊天室 -->
-          <li @click="goIm()">
-            <div>
-              💬 <span>联系我</span>
-            </div>
-          </li>
 
           <!-- 后台 -->
           <li @click="goAdmin()">
@@ -332,9 +294,11 @@
         visible: true,
       };
       this.$store.commit("changeToolbarStatus", toolbarStatus);
-      this.getWebInfo();
-      this.getSysConfig();
-      this.getSortInfo();
+      this.initStaticWebInfo();
+      this.initStaticSysConfig();
+      // this.getWebInfo();
+      // this.getSysConfig();
+      this.getCategory();
 
       this.mobile = document.body.clientWidth < 1100;
 
@@ -366,25 +330,19 @@
         this.toolbarDrawer = false;
       },
 
-      goIm() {
-        if (this.$common.isEmpty(this.$store.state.currentUser)) {
-          this.$message({
-            message: "请先登录！",
-            type: "error"
-          });
-        } else {
-          let userToken = this.$common.encrypt(localStorage.getItem("userToken"));
-          window.open(this.$constant.imBaseURL + "?userToken=" + userToken + "&defaultStoreType=" + localStorage.getItem("defaultStoreType"));
-        }
-      },
+
 
       goAdmin() {
         window.open(this.$constant.webURL + "/admin");
       },
 
       logout() {
-        this.$http.get(this.$constant.baseURL + "/user/logout")
+        this.$http.post(this.$constant.baseURL + "/user/logout")
           .then((res) => {
+            this.$message({
+              message: "退出成功！",
+              type: "success"
+            });
           })
           .catch((error) => {
             this.$message({
@@ -442,20 +400,34 @@
         font.load();
         document.fonts.add(font);
       },
-      getSortInfo() {
-        this.$http.get(this.$constant.baseURL + "/webInfo/getSortInfo")
-          .then((res) => {
-            if (!this.$common.isEmpty(res.data)) {
-              this.$store.commit("loadSortInfo", res.data);
-            }
-          })
-          .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
-          });
+
+      async getCategory() {
+        try {
+          const response = await this.$http.get("/category/list");
+
+          if (response.code === 200 && !this.$common.isEmpty(response.data)) {
+            // 将后端返回的Category对象转换为前端需要的格式
+            const sortInfo = response.data.map(category => ({
+              id: category.id,
+              name: category.name,
+              sortName: category.name,
+              description: category.description
+            }));
+            this.$store.commit("loadSortInfo", sortInfo);
+          }
+        } catch (error) {
+          // 如果后端接口失败，使用静态数据作为备用方案
+          const staticSortInfo = [
+            { id: 1, name: "Spring Boot", sortName: "Spring Boot" },
+            { id: 2, name: "Vue.js", sortName: "Vue.js" },
+            { id: 3, name: "MySQL", sortName: "MySQL" },
+            { id: 4, name: "Java", sortName: "Java" },
+            { id: 5, name: "前端技术", sortName: "前端技术" }
+          ];
+          this.$store.commit("loadSortInfo", staticSortInfo);
+        }
       },
+
       changeColor() {
         this.isDark = !this.isDark;
         let root = document.querySelector(":root");
@@ -504,6 +476,35 @@
             mousedown();
           });
         }
+      },
+
+      // 初始化静态网站信息
+      initStaticWebInfo() {
+        const webInfo = {
+          webName: "Diamond博客",
+          webTitle: "Diamond博客",
+          backgroundImage: require("@/assets/images/bg1.png"),
+          avatar: require("@/assets/images/logo.png"),
+          historyAllCount: 1000,
+          notices: ["欢迎来到Diamond博客！"],
+          randomCover: [
+            require("@/assets/images/bg1.png")
+          ],
+          defaultStoreType: "local"
+        };
+
+        this.$store.commit("loadWebInfo", webInfo);
+        localStorage.setItem("defaultStoreType", webInfo.defaultStoreType);
+      },
+
+      // 初始化静态系统配置
+      initStaticSysConfig() {
+        const sysConfig = {
+          webStaticResourcePrefix: "/src/assets/images/"
+        };
+
+        this.$store.commit("loadSysConfig", sysConfig);
+        this.buildCssPicture();
       }
     }
   }

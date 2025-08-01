@@ -1,6 +1,6 @@
 export default {
-  // 测试环境
-  baseURL: "http://localhost:8081",
+  // 测试环境 - 使用代理
+  baseURL: "",
   imBaseURL: "http://localhost:81/im",
   webURL: "http://localhost",
 
@@ -11,9 +11,6 @@ export default {
 
   host: location.hostname + (location.port ? ':' + location.port : ''),
 
-  live2d_path: "https://cdn.jsdelivr.net/gh/stevenjoezhang/live2d-widget@latest/",
-  cdnPath: "https://cdn.jsdelivr.net/gh/fghrsh/live2d_api/",
-  waifuPath: "/webInfo/getWaifuJson",
   hitokoto: "https://v1.hitokoto.cn",
   shehui: "https://api.oick.cn/yulu/api.php",
   tocbot: "https://cdnjs.cloudflare.com/ajax/libs/tocbot/4.18.2/tocbot.min.js",

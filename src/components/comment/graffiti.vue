@@ -276,14 +276,14 @@
         fd.append("type", "graffiti");
         fd.append("storeType", storeType);
 
-        if (storeType === "local") {
+        if (storeType === "local" || storeType === "aliyun") {
           this.saveLocal(fd);
         } else if (storeType === "qiniu") {
           this.saveQiniu(fd);
         }
       },
       saveLocal(fd) {
-        this.$http.upload(this.$constant.baseURL + "/resource/upload", fd)
+        this.$http.upload(this.$constant.baseURL + "/file/upload", fd)
           .then((res) => {
             if (!this.$common.isEmpty(res.data)) {
               this.clearContext();

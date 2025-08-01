@@ -59,12 +59,7 @@
                          :maxNumber="1"></uploadPicture>
         </el-form-item>
 
-        <el-form-item label="提示" prop="waifuJson">
-          <div style="display: flex">
-            <el-input :disabled="disabled" :rows="6" type="textarea" v-model="webInfo.waifuJson"></el-input>
-            <i class="el-icon-edit my-icon" @click="disabled = !disabled"></i>
-          </div>
-        </el-form-item>
+
       </el-form>
       <div class="myCenter" style="margin-bottom: 22px">
         <el-button type="primary" @click="submitForm('ruleForm')">保存基本信息</el-button>
@@ -273,7 +268,6 @@
           footer: "",
           backgroundImage: "",
           avatar: "",
-          waifuJson: "",
           status: false
         },
         notices: [],
@@ -358,7 +352,6 @@
               this.webInfo.footer = res.data.footer;
               this.webInfo.backgroundImage = res.data.backgroundImage;
               this.webInfo.avatar = res.data.avatar;
-              this.webInfo.waifuJson = res.data.waifuJson;
               this.webInfo.status = res.data.status;
               this.notices = JSON.parse(res.data.notices);
               this.randomAvatar = JSON.parse(res.data.randomAvatar);

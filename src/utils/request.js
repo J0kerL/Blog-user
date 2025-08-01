@@ -6,7 +6,7 @@ import qs from "qs";
 import store from "../store";
 
 
-axios.defaults.baseURL = constant.baseURL;
+axios.defaults.baseURL = "/api";
 
 
 // 添加请求拦截器
@@ -43,15 +43,18 @@ axios.interceptors.response.use(function (response) {
 
 export default {
   post(url, params = {}, isAdmin = false, json = true) {
-    let config;
+    let config = { headers: {} };
+    
     if (isAdmin) {
-      config = {
-        headers: {"Authorization": localStorage.getItem("adminToken")}
-      };
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        config.headers["Authorization"] = adminToken;
+      }
     } else {
-      config = {
-        headers: {"Authorization": localStorage.getItem("userToken")}
-      };
+      const userToken = localStorage.getItem("userToken");
+      if (userToken) {
+        config.headers["Authorization"] = userToken;
+      }
     }
 
     return new Promise((resolve, reject) => {
@@ -67,11 +70,18 @@ export default {
   },
 
   get(url, params = {}, isAdmin = false) {
-    let headers;
+    let headers = {};
+    
     if (isAdmin) {
-      headers = {"Authorization": localStorage.getItem("adminToken")};
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        headers["Authorization"] = adminToken;
+      }
     } else {
-      headers = {"Authorization": localStorage.getItem("userToken")};
+      const userToken = localStorage.getItem("userToken");
+      if (userToken) {
+        headers["Authorization"] = userToken;
+      }
     }
 
     return new Promise((resolve, reject) => {
@@ -86,18 +96,79 @@ export default {
     });
   },
 
-  upload(url, param, isAdmin = false, option) {
-    let config;
+  put(url, params = {}, isAdmin = false, json = true) {
+    let config = { headers: {} };
+    
     if (isAdmin) {
-      config = {
-        headers: {"Authorization": localStorage.getItem("adminToken"), "Content-Type": "multipart/form-data"},
-        timeout: 60000
-      };
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        config.headers["Authorization"] = adminToken;
+      }
     } else {
-      config = {
-        headers: {"Authorization": localStorage.getItem("userToken"), "Content-Type": "multipart/form-data"},
-        timeout: 60000
-      };
+      const userToken = localStorage.getItem("userToken");
+      if (userToken) {
+        config.headers["Authorization"] = userToken;
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      axios
+        .put(url, json ? params : qs.stringify(params), config)
+        .then(res => {
+          resolve(res.data);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  },
+
+  delete(url, params = {}, isAdmin = false) {
+    let config = {
+      headers: {},
+      params: params
+    };
+    
+    if (isAdmin) {
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        config.headers["Authorization"] = adminToken;
+      }
+    } else {
+      const userToken = localStorage.getItem("userToken");
+      if (userToken) {
+        config.headers["Authorization"] = userToken;
+      }
+    }
+
+    return new Promise((resolve, reject) => {
+      axios
+        .delete(url, config)
+        .then(res => {
+          resolve(res.data);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  },
+
+  upload(url, param, isAdmin = false, option) {
+    let config = {
+      headers: {"Content-Type": "multipart/form-data"},
+      timeout: 60000
+    };
+    
+    if (isAdmin) {
+      const adminToken = localStorage.getItem("adminToken");
+      if (adminToken) {
+        config.headers["Authorization"] = adminToken;
+      }
+    } else {
+      const userToken = localStorage.getItem("userToken");
+      if (userToken) {
+        config.headers["Authorization"] = userToken;
+      }
     }
     if (typeof option !== "undefined") {
       config.onUploadProgress = progressEvent => {

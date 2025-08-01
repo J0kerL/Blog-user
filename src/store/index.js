@@ -10,7 +10,12 @@ export default new Vuex.Store({
     currentUser: JSON.parse(localStorage.getItem("currentUser") || '{}'),
     currentAdmin: JSON.parse(localStorage.getItem("currentAdmin") || '{}'),
     sysConfig: JSON.parse(localStorage.getItem("sysConfig") || '{}'),
-    webInfo: JSON.parse(localStorage.getItem("webInfo") || '{"webName": "", "webTitle": [], "notices": [], "randomCover": [], "footer": "", "backgroundImage": "", "avatar": ""}')
+    webInfo: JSON.parse(localStorage.getItem("webInfo") || '{"webName": "", "webTitle": [], "notices": [], "randomCover": [], "footer": "", "backgroundImage": "", "avatar": ""}'),
+    // 添加缓存状态
+    cacheFlags: {
+      sortInfoLoaded: false,
+      articlesLoaded: false
+    }
   },
   getters: {
     articleTotal: state => {
@@ -47,7 +52,11 @@ export default new Vuex.Store({
       if (sortInfo !== null && sortInfo.length !== 0) {
         state.sortInfo = sortInfo.sort((s1, s2) => s1.priority - s2.priority);
         localStorage.setItem("sortInfo", JSON.stringify(sortInfo.sort((s1, s2) => s1.priority - s2.priority)));
+        state.cacheFlags.sortInfoLoaded = true;
       }
+    },
+    setCacheFlag(state, { key, value }) {
+      state.cacheFlags[key] = value;
     },
     loadCurrentUser(state, user) {
       state.currentUser = user;
@@ -62,9 +71,29 @@ export default new Vuex.Store({
       localStorage.setItem("currentAdmin", JSON.stringify(user));
     },
     loadWebInfo(state, webInfo) {
-      webInfo.webTitle = webInfo.webTitle.split('');
-      webInfo.notices = JSON.parse(webInfo.notices);
-      webInfo.randomCover = JSON.parse(webInfo.randomCover);
+      // 处理webTitle
+      if (typeof webInfo.webTitle === 'string') {
+        webInfo.webTitle = webInfo.webTitle.split('');
+      }
+
+      // 处理notices - 如果已经是数组就不需要解析
+      if (typeof webInfo.notices === 'string') {
+        try {
+          webInfo.notices = JSON.parse(webInfo.notices);
+        } catch (e) {
+          webInfo.notices = [webInfo.notices]; // 如果解析失败，包装成数组
+        }
+      }
+
+      // 处理randomCover - 如果已经是数组就不需要解析
+      if (typeof webInfo.randomCover === 'string') {
+        try {
+          webInfo.randomCover = JSON.parse(webInfo.randomCover);
+        } catch (e) {
+          webInfo.randomCover = [webInfo.randomCover]; // 如果解析失败，包装成数组
+        }
+      }
+
       state.webInfo = webInfo;
       localStorage.setItem("webInfo", JSON.stringify(webInfo));
     }
