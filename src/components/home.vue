@@ -52,15 +52,6 @@
               </div>
             </li>
 
-<!--            &lt;!&ndash; 旅拍 &ndash;&gt;-->
-<!--            <li @click="$router.push({path: '/travel'})">-->
-<!--              <div class="my-menu">-->
-<!--                🌏 <span>旅拍</span>-->
-<!--              </div>-->
-<!--            </li>-->
-
-
-
             <!-- 后台 -->
             <li @click="goAdmin()">
               <div class="my-menu">
@@ -483,12 +474,12 @@
         const webInfo = {
           webName: "Diamond博客",
           webTitle: "Diamond博客",
-          backgroundImage: require("@/assets/images/bg1.png"),
+          backgroundImage: require("@/assets/images/top-bg.png"),
           avatar: require("@/assets/images/logo.png"),
           historyAllCount: 1000,
           notices: ["欢迎来到Diamond博客！"],
           randomCover: [
-            require("@/assets/images/bg1.png")
+            require("@/assets/images/top-bg.png")
           ],
           defaultStoreType: "local"
         };

@@ -132,16 +132,16 @@
           page: this.pagination.page,
           pageSize: this.pagination.pageSize
         };
-        
+
         if (this.pagination.categoryId) {
           params.categoryId = this.pagination.categoryId;
         }
-        
+
         // 注意：后端暂时没有labelId参数，这里先注释掉
         // if (this.pagination.labelId) {
         //   params.labelId = this.pagination.labelId;
         // }
-        
+
         this.$http.get(this.$constant.baseURL + "/article/page", params)
           .then((res) => {
             if (res.code === 200 && !this.$common.isEmpty(res.data)) {
@@ -150,7 +150,7 @@
                 id: article.id,
                 title: article.title,
                 content: article.content || article.summary || '暂无内容摘要',
-                cover: article.cover || require('@/assets/images/bg1.png'),
+                cover: article.cover || require('@/assets/images/top-bg.png'),
                 categoryId: article.categoryId,
                 categoryName: article.categoryName || '未分类',
                 authorName: article.authorName || 'Diamond',
@@ -159,7 +159,7 @@
                 createTime: article.createTime,
                 updateTime: article.updateTime
               }));
-              
+
               this.articles = this.articles.concat(articles);
               this.pagination.total = res.data.total;
             }

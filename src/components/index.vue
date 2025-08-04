@@ -11,7 +11,7 @@
       <template slot="body">
         <!-- 首页图片 -->
         <el-image style="animation: header-effect 2s" class="background-image-index" v-once lazy
-          :src="require('@/assets/images/bg1.png')" fit="cover">
+          :src="require('@/assets/images/top-bg.png')" fit="cover">
           <div slot="error" class="image-slot background-image-index-error"></div>
         </el-image>
         <!-- 首页文字 -->
@@ -164,7 +164,7 @@ export default {
       // 直接跳转到分类页面
       this.$router.push({ path: '/sort', query: { categoryId: sort.id } });
     },
-    
+
     async selectArticle(articleSearch) {
       // 直接跳转到分类页面进行搜索
       this.$router.push({ path: '/sort', query: { search: articleSearch } });
@@ -203,7 +203,7 @@ export default {
               const processedArticle = {
                 id: article.id,
                 articleTitle: article.title || article.articleTitle || '无标题',
-                articleCover: article.cover || article.articleCover || require('@/assets/images/bg1.png'),
+                articleCover: article.cover || article.articleCover || require('@/assets/images/top-bg.png'),
                 articleContent: article.content || article.summary || article.articleContent || '暂无内容摘要',
                 categoryId: article.categoryId,
                 categoryName: article.categoryName || '未分类',
@@ -269,7 +269,7 @@ export default {
       let xhr = new XMLHttpRequest();
       xhr.open('get', this.$constant.jinrishici);
       xhr.timeout = 5000; // 设置5秒超时
-      
+
       xhr.onreadystatechange = function () {
         if (xhr.readyState === 4) {
           if (xhr.status === 200) {
@@ -286,17 +286,17 @@ export default {
           }
         }
       };
-      
+
       xhr.onerror = function() {
         // 网络错误，使用默认文案
         that.printerInfo = "你看对面的青山多漂亮";
       };
-      
+
       xhr.ontimeout = function() {
         // 超时，使用默认文案
         that.printerInfo = "你看对面的青山多漂亮";
       };
-      
+
       xhr.send();
     },
 
