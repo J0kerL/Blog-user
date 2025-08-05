@@ -25,10 +25,6 @@ const routes = [
       name: "article",
       component: () => import('../components/article')
     }, {
-      path: "/weiYan",
-      name: "weiYan",
-      component: () => import('../components/weiYan')
-    }, {
       path: "/love",
       name: "love",
       component: () => import('../components/love')
@@ -42,70 +38,7 @@ const routes = [
       component: () => import('../components/user')
     }]
   },
-  {
-    path: '/admin',
-    redirect: '/welcome',
-    meta: {requiresAuth: true},
-    component: () => import('../components/admin/admin'),
-    children: [{
-      path: '/welcome',
-      name: 'welcome',
-      component: () => import('../components/admin/welcome')
-    }, {
-      path: '/main',
-      name: 'main',
-      component: () => import('../components/admin/main')
-    }, {
-      path: '/webEdit',
-      name: 'webEdit',
-      component: () => import('../components/admin/webEdit')
-    }, {
-      path: '/userList',
-      name: 'userList',
-      component: () => import('../components/admin/userList')
-    }, {
-      path: '/postList',
-      name: 'postList',
-      component: () => import('../components/admin/postList')
-    }, {
-      path: '/postEdit',
-      name: 'postEdit',
-      component: () => import('../components/admin/postEdit')
-    }, {
-      path: '/sortList',
-      name: 'sortList',
-      component: () => import('../components/admin/sortList')
-    }, {
-      path: '/configList',
-      name: 'configList',
-      component: () => import('../components/admin/configList')
-    }, {
-      path: '/commentList',
-      name: 'commentList',
-      component: () => import('../components/admin/commentList')
-    }, {
-      path: '/treeHoleList',
-      name: 'treeHoleList',
-      component: () => import('../components/admin/treeHoleList')
-    }, {
-      path: '/resourceList',
-      name: 'resourceList',
-      component: () => import('../components/admin/resourceList')
-    }, {
-      path: '/loveList',
-      name: 'loveList',
-      component: () => import('../components/admin/loveList')
-    }, {
-      path: '/resourcePathList',
-      name: 'resourcePathList',
-      component: () => import('../components/admin/resourcePathList')
-    }]
-  },
-  {
-    path: '/verify',
-    name: 'verify',
-    component: () => import('../components/admin/verify')
-  }
+
 ]
 
 const router = new VueRouter({
@@ -117,18 +50,8 @@ const router = new VueRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  if (to.matched.some(record => record.meta.requiresAuth)) {
-    if (!Boolean(localStorage.getItem("adminToken"))) {
-      next({
-        path: '/verify',
-        query: {redirect: to.fullPath}
-      });
-    } else {
-      next();
-    }
-  } else {
-    next();
-  }
+  // 由于已删除后台功能，所有路由都可以直接访问
+  next();
 })
 
 export default router

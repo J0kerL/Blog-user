@@ -17,12 +17,12 @@
         </svg>
       </div>
     </div>
-    
+
     <!-- 文章内容 -->
     <div class="article-content">
       <!-- 标题 -->
       <h3 class="article-title">{{ article.title }}</h3>
-      
+
       <!-- 作者信息 -->
       <div class="article-meta">
         <span>
@@ -36,20 +36,23 @@
         </span>
         <span v-if="article.createTime">
           <svg viewBox="0 0 1024 1024" width="14" height="14" style="vertical-align: -2px;">
-            <path d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.8 103.1c3.6 2.5 4.4 7.5 1.8 11.1z" fill="#52c41a"></path>
+            <path
+              d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.8 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"
+              fill="#52c41a"></path>
           </svg>
           {{ formatDate(article.createTime) }}
         </span>
       </div>
-      
+
       <!-- 文章摘要 -->
       <div class="article-summary">
         {{ article.content }}
       </div>
-      
+
       <!-- 分类和标签 -->
       <div class="article-tags">
-        <span class="category-tag" @click.stop="$router.push({ path: '/sort', query: { categoryId: article.categoryId } })">
+        <span class="category-tag"
+          @click.stop="$router.push({ path: '/sort', query: { categoryId: article.categoryId } })">
           <svg viewBox="0 0 1024 1024" width="15" height="15" style="vertical-align: -3px;">
             <path
               d="M179.2 153.6m89.6 0l588.8 0q89.6 0 89.6 89.6l0 486.4q0 89.6-89.6 89.6l-588.8 0q-89.6 0-89.6-89.6l0-486.4q0-89.6 89.6-89.6Z"
@@ -176,8 +179,7 @@ export default {
   gap: 8px;
 }
 
-.category-tag,
-.tag {
+.category-tag {
   padding: 4px 8px;
   background-color: var(--maxLightGray);
   border-radius: 4px;
@@ -188,10 +190,18 @@ export default {
   user-select: none;
 }
 
-.category-tag:hover,
-.tag:hover {
+.category-tag:hover {
   background-color: var(--themeBackground);
   color: var(--white);
+}
+
+.tag {
+  padding: 4px 8px;
+  background-color: var(--maxLightGray);
+  border-radius: 4px;
+  font-size: 12px;
+  color: var(--greyFont);
+  user-select: none;
 }
 
 .error-text {
@@ -204,11 +214,11 @@ export default {
   .article-content {
     padding: 15px;
   }
-  
+
   .article-title {
     font-size: 16px;
   }
-  
+
   .article-summary {
     font-size: 13px;
     -webkit-line-clamp: 2;

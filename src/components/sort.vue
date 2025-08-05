@@ -6,6 +6,16 @@
     </div>
 
     <div style="background: var(--background);padding-top: 40px;" class="my-animation-slide-bottom">
+      <!-- 页面标题 -->
+      <div class="page-title-wrap">
+        <h2 class="page-title">
+          <span v-if="tagName">🏷️ 标签：{{ tagName }}</span>
+          <span v-else-if="search">🔍 搜索：{{ search }}</span>
+          <span v-else-if="sort">📒 分类：{{ sort.name || sort.sortName }}</span>
+          <span v-else>📝 全部文章</span>
+        </h2>
+      </div>
+
       <!-- 标签 -->
       <div class="sort-warp shadow-box" v-if="!$common.isEmpty(sort) && !$common.isEmpty(sort.labels)">
         <div v-for="(label, index) in sort.labels" :key="index"
@@ -54,14 +64,18 @@
       return {
         categoryId: this.$route.query.categoryId || this.$route.query.sortId, // 兼容旧的sortId参数
         labelId: this.$route.query.labelId,
+        tagId: this.$route.query.tagId,
+        tagName: this.$route.query.tagName,
+        search: this.$route.query.search,
         sort: null,
         pagination: {
           page: 1,
           pageSize: 10,
           total: 0,
-          searchKey: "",
+          searchKey: this.$route.query.search || "",
           categoryId: this.$route.query.categoryId || this.$route.query.sortId,
-          labelId: this.$route.query.labelId
+          labelId: this.$route.query.labelId,
+          tagId: this.$route.query.tagId
         },
         articles: []
       }
@@ -75,13 +89,17 @@
           page: 1,
           pageSize: 10,
           total: 0,
-          searchKey: "",
+          searchKey: this.$route.query.search || "",
           categoryId: this.$route.query.categoryId || this.$route.query.sortId,
-          labelId: this.$route.query.labelId
+          labelId: this.$route.query.labelId,
+          tagId: this.$route.query.tagId
         };
         this.articles.splice(0, this.articles.length);
         this.categoryId = this.$route.query.categoryId || this.$route.query.sortId;
         this.labelId = this.$route.query.labelId;
+        this.tagId = this.$route.query.tagId;
+        this.tagName = this.$route.query.tagName;
+        this.search = this.$route.query.search;
         this.getSort();
         this.getArticles();
       }
@@ -133,8 +151,19 @@
           pageSize: this.pagination.pageSize
         };
 
+        // 分类筛选
         if (this.pagination.categoryId) {
           params.categoryId = this.pagination.categoryId;
+        }
+
+        // 标签筛选 - 后端接口支持tagId参数
+        if (this.pagination.tagId) {
+          params.tagId = this.pagination.tagId;
+        }
+
+        // 搜索功能
+        if (this.pagination.searchKey) {
+          params.title = this.pagination.searchKey;
         }
 
         // 注意：后端暂时没有labelId参数，这里先注释掉
@@ -221,6 +250,24 @@
   }
 
 
+  .page-title-wrap {
+    width: 70%;
+    max-width: 780px;
+    margin: 0 auto 30px;
+    text-align: center;
+  }
+
+  .page-title {
+    color: var(--fontColor);
+    font-size: 28px;
+    font-weight: bold;
+    margin: 0;
+    padding: 20px;
+    background: var(--background);
+    border-radius: 10px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.1);
+  }
+
   @media screen and (max-width: 900px) {
     .sort-warp {
       width: 90%;
@@ -228,6 +275,14 @@
 
     .article-wrap {
       width: 90%;
+    }
+
+    .page-title-wrap {
+      width: 90%;
+    }
+
+    .page-title {
+      font-size: 24px;
     }
   }
 </style>

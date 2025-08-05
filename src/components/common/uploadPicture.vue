@@ -117,10 +117,21 @@
           fd.append("originalName", options.file.name);
           fd.append("key", key);
           fd.append("relativePath", key);
-          fd.append("type", this.prefix);
+          // 根据prefix确定正确的type参数
+          let fileType = "image"; // 默认为image
+          if (this.prefix === "userAvatar" || this.prefix === "avatar") {
+            fileType = "avatar";
+          } else if (this.prefix === "document") {
+            fileType = "document";
+          } else if (this.prefix === "video") {
+            fileType = "video";
+          } else if (this.prefix === "audio") {
+            fileType = "audio";
+          }
+          fd.append("type", fileType);
           fd.append("storeType", this.storeType);
 
-          return this.$http.upload(this.$constant.baseURL + "/file/upload", fd, this.isAdmin, options);
+          return this.$http.upload("/file/upload", fd, this.isAdmin, options);
         } else if (this.storeType === "qiniu") {
           const xhr = new XMLHttpRequest();
           xhr.open('get', this.$constant.baseURL + "/qiniu/getUpToken?key=" + key, false);
@@ -152,21 +163,67 @@
 
       // 文件上传成功时的钩子
       handleSuccess(response, file, fileList) {
-        let url;
-        if (this.storeType === "local") {
-          url = response.data;
-        } else if (this.storeType === "aliyun") {
-          url = response.data; // 阿里云OSS返回的完整URL
-          this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "aliyun", this.isAdmin);
-        } else if (this.storeType === "qiniu") {
-          url = this.$store.state.sysConfig['qiniu.downloadUrl'] + response.key;
-          this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "qiniu", this.isAdmin);
+        try {
+          let url;
+          
+          // 检查响应是否有效
+          if (!response) {
+            throw new Error("上传响应为空");
+          }
+          
+          if (this.storeType === "local") {
+            if (response.code === 200 && response.data) {
+              url = response.data;
+            } else {
+              throw new Error(response.message || "本地上传失败");
+            }
+          } else if (this.storeType === "aliyun") {
+            if (response.code === 200 && response.data) {
+              url = response.data; // 阿里云OSS返回的完整URL
+              this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "aliyun", this.isAdmin);
+            } else {
+              throw new Error(response.message || "阿里云上传失败");
+            }
+          } else if (this.storeType === "qiniu") {
+            if (response.key) {
+              url = this.$store.state.sysConfig['qiniu.downloadUrl'] + response.key;
+              this.$common.saveResource(this, this.prefix, url, file.size, file.raw.type, file.name, "qiniu", this.isAdmin);
+            } else {
+              throw new Error("七牛云上传失败");
+            }
+          }
+          
+          if (url) {
+            this.$emit("addPicture", url);
+            this.$message({
+              message: "上传成功！",
+              type: "success"
+            });
+          } else {
+            throw new Error("未获取到文件URL");
+          }
+        } catch (error) {
+          console.error("文件上传处理失败:", error);
+          this.$message({
+            message: error.message || "文件上传处理失败！",
+            type: "error"
+          });
         }
-        this.$emit("addPicture", url);
       },
       handleError(err, file, fileList) {
+        console.error("文件上传失败:", err);
+        let errorMessage = "文件上传失败！";
+        
+        if (typeof err === 'string') {
+          errorMessage = err;
+        } else if (err && err.message) {
+          errorMessage = err.message;
+        } else if (err && err.response && err.response.data && err.response.data.message) {
+          errorMessage = err.response.data.message;
+        }
+        
         this.$message({
-          message: err,
+          message: errorMessage,
           type: "error"
         });
       },

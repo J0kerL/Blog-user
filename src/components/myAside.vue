@@ -5,19 +5,19 @@
       <div v-if="!$common.mobile()" class="card-content1 shadow-box background-opacity">
         <el-avatar style="margin-top: 20px" class="user-avatar" :size="120"
           :src="!$common.isEmpty($store.state.currentUser) ? $store.state.currentUser.avatar : 'https://diamond-blog.oss-cn-beijing.aliyuncs.com/defaultAvatar.jpg'"></el-avatar>
-        <div class="web-name">{{ webInfo.webName }}</div>
+        <div class="web-name">{{ displayName }}</div>
         <div class="web-info">
           <div class="blog-info-box">
             <span>文章</span>
-            <span class="blog-info-num">{{ dashboardStats.articleCount || 0 }}</span>
+            <span class="blog-info-num">{{ isLoggedIn ? userStats.articleCount : (dashboardStats.articleCount || 0) }}</span>
           </div>
           <div class="blog-info-box">
             <span>评论</span>
-            <span class="blog-info-num">{{ dashboardStats.commentCount || 0 }}</span>
+            <span class="blog-info-num">{{ isLoggedIn ? userStats.commentCount : (dashboardStats.commentCount || 0) }}</span>
           </div>
           <div class="blog-info-box">
-            <span>访问量</span>
-            <span class="blog-info-num">{{ dashboardStats.viewCount || 0 }}</span>
+            <span>{{ isLoggedIn ? '贡献值' : '访问量' }}</span>
+            <span class="blog-info-num">{{ isLoggedIn ? '666' : (dashboardStats.viewCount || 0) }}</span>
           </div>
         </div>
 
@@ -95,6 +95,11 @@
         </div>
       </div>
 
+      <!-- 标签云 -->
+      <div class="shadow-box background-opacity wow">
+        <tagCloud></tagCloud>
+      </div>
+
 
     </div>
 
@@ -104,10 +109,12 @@
 
 <script>
 import vueSeamlessScroll from "vue-seamless-scroll";
+const tagCloud = () => import("./common/tagCloud");
 
 export default {
   components: {
-    vueSeamlessScroll
+    vueSeamlessScroll,
+    tagCloud
   },
   data() {
     return {
@@ -122,6 +129,10 @@ export default {
         articleCount: 0,
         viewCount: 0
       },
+      userStats: {
+        articleCount: 0,
+        commentCount: 0
+      },
       tagList: [],
       selectedTag: null
     }
@@ -132,12 +143,42 @@ export default {
     },
     sortInfo() {
       return this.$store.getters.navigationBar;
+    },
+    displayName() {
+      // 如果用户已登录，显示用户名；否则显示"Diamond博客"
+      if (!this.$common.isEmpty(this.$store.state.currentUser) && this.$store.state.currentUser.username) {
+        return this.$store.state.currentUser.username;
+      }
+      return "Diamond博客";
+    },
+    isLoggedIn() {
+      // 判断用户是否已登录
+      return !this.$common.isEmpty(this.$store.state.currentUser) && this.$store.state.currentUser.username;
     }
   },
   created() {
     this.getDashboardStats();
     this.getCategoryList();
     this.getLatestArticles();
+    // 如果用户已登录，获取用户个人统计数据
+    if (this.isLoggedIn) {
+      this.getUserStats();
+    }
+  },
+  watch: {
+    // 监听用户登录状态变化
+    isLoggedIn(newVal) {
+      if (newVal) {
+        // 用户登录后，获取个人统计数据
+        this.getUserStats();
+      } else {
+        // 用户退出登录后，清空个人统计数据
+        this.userStats = {
+          articleCount: 0,
+          commentCount: 0
+        };
+      }
+    }
   },
   methods: {
     selectSort(sort) {
@@ -168,9 +209,6 @@ export default {
         .catch((error) => {
           console.error("获取最新文章失败:", error);
         });
-    },
-    showTip() {
-      this.$router.push({ path: '/weiYan' });
     },
     // 获取仪表盘统计数据
     getDashboardStats() {
@@ -225,6 +263,32 @@ export default {
             { id: 5, name: "前端技术", sortName: "前端技术", description: "前端技术相关文章", articleCount: 0, sortType: 0 }
           ];
           this.$store.commit("loadSortInfo", defaultCategories);
+        });
+    },
+
+    // 获取用户个人统计数据
+    getUserStats() {
+      if (!this.isLoggedIn) {
+        return;
+      }
+
+      // 调用后端获取当前登录用户的个人统计数据API
+      this.$http.get("/user/stats", {}, false)
+        .then((res) => {
+          if (res.code === 200 && !this.$common.isEmpty(res.data)) {
+            this.userStats = {
+              articleCount: res.data.articleCount || 0,
+              commentCount: res.data.commentCount || 0
+            };
+          }
+        })
+        .catch((error) => {
+          console.error("获取用户个人统计数据失败:", error);
+          // 设置默认值
+          this.userStats = {
+            articleCount: 0,
+            commentCount: 0
+          };
         });
     },
 

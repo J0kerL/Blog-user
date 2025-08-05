@@ -33,7 +33,7 @@
             <el-dropdown :hide-timeout="500" placement="bottom">
               <li>
                 <div class="my-menu">
-                  📒 <span>记录</span>
+                  📒 <span>分类</span>
                 </div>
               </li>
               <el-dropdown-menu slot="dropdown">
@@ -45,17 +45,25 @@
               </el-dropdown-menu>
             </el-dropdown>
 
+            <el-dropdown :hide-timeout="500" placement="bottom">
+              <li>
+                <div class="my-menu">
+                  🏷️ <span>标签</span>
+                </div>
+              </li>
+              <el-dropdown-menu slot="dropdown">
+                <el-dropdown-item v-for="(tag, index) in tagList" :key="tag.id">
+                  <div @click="$router.push({path: '/sort', query: {tagId: tag.id, tagName: tag.name}})">
+                    {{tag.name}}
+                  </div>
+                </el-dropdown-item>
+              </el-dropdown-menu>
+            </el-dropdown>
+
             <!-- 家 -->
             <li @click="$router.push({path: '/love'})">
               <div class="my-menu">
                 ❤️‍🔥 <span>家</span>
-              </div>
-            </li>
-
-            <!-- 后台 -->
-            <li @click="goAdmin()">
-              <div class="my-menu">
-                💻️ <span>后台</span>
               </div>
             </li>
 
@@ -155,7 +163,7 @@
 
           <li>
             <div>
-              📒 <span>记录</span>
+              📒 <span>分类</span>
             </div>
             <div>
               <div v-for="(menu, index) in sortInfo"
@@ -167,26 +175,24 @@
             </div>
           </li>
 
+          <li>
+            <div>
+              🏷️ <span>标签</span>
+            </div>
+            <div>
+              <div v-for="(tag, index) in tagList"
+                   :key="tag.id"
+                   class="sortMenu"
+                   @click="smallMenu({path: '/sort', query: {tagId: tag.id, tagName: tag.name}})">
+                {{tag.name}}
+              </div>
+            </div>
+          </li>
+
           <!-- 家 -->
           <li @click="smallMenu({path: '/love'})">
             <div>
               ❤️‍🔥 <span>家</span>
-            </div>
-          </li>
-
-<!--          &lt;!&ndash; 旅拍 &ndash;&gt;-->
-<!--          <li @click="smallMenu({path: '/travel'})">-->
-<!--            <div>-->
-<!--              🌏 <span>旅拍</span>-->
-<!--            </div>-->
-<!--          </li>-->
-
-
-
-          <!-- 后台 -->
-          <li @click="goAdmin()">
-            <div>
-              💻️ <span>后台</span>
             </div>
           </li>
 
@@ -230,7 +236,8 @@
         isDark: false,
         scrollTop: 0,
         toolbarDrawer: false,
-        mobile: false
+        mobile: false,
+        tagList: []
       }
     },
     mounted() {
@@ -290,6 +297,7 @@
       // this.getWebInfo();
       // this.getSysConfig();
       this.getCategory();
+      this.getTagList();
 
       this.mobile = document.body.clientWidth < 1100;
 
@@ -319,12 +327,6 @@
       smallMenuLogout() {
         this.logout();
         this.toolbarDrawer = false;
-      },
-
-
-
-      goAdmin() {
-        window.open(this.$constant.webURL + "/admin");
       },
 
       logout() {
@@ -496,6 +498,24 @@
 
         this.$store.commit("loadSysConfig", sysConfig);
         this.buildCssPicture();
+      },
+
+      // 获取标签列表
+      async getTagList() {
+        try {
+          const response = await this.$http.get("/tag/list");
+          if (response && response.code === 200 && response.data) {
+            this.tagList = response.data.map(tag => ({
+              id: tag.id,
+              name: tag.name,
+              articleCount: tag.articleCount || 0
+            }));
+          }
+        } catch (error) {
+          console.error("获取标签列表失败:", error);
+          // 如果API失败，设置空数组，不显示标签
+          this.tagList = [];
+        }
       }
     }
   }
