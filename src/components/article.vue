@@ -244,6 +244,17 @@ export default {
         });
     },
     highlight() {
+      // 检查hljs是否已加载
+      if (typeof window.hljs === 'undefined') {
+        // 延迟500ms后重试一次
+        setTimeout(() => {
+          this.highlight();
+        }, 500);
+        return;
+      }
+
+      const hljs = window.hljs;
+
       let attributes = {
         autocomplete: "off",
         autocorrect: "off",
@@ -265,28 +276,70 @@ export default {
           }
         });
 
-        // 检测语言是否存在，不存在则自动检测
-        let language = hljs.getLanguage(lang.toLowerCase());
-        if (language === undefined) {
-          // 启用自动检测
+        // 语言别名映射表
+        const languageAliases = {
+          'mysql': 'sql',
+          'postgresql': 'sql',
+          'postgres': 'sql',
+          'sqlite': 'sql',
+          'mariadb': 'sql',
+          'tsql': 'sql',
+          'plsql': 'sql',
+          'js': 'javascript',
+          'ts': 'typescript',
+          'py': 'python',
+          'rb': 'ruby',
+          'sh': 'bash',
+          'shell': 'bash',
+          'yml': 'yaml',
+          'md': 'markdown',
+          'vue': 'html',
+          'jsx': 'javascript',
+          'tsx': 'typescript'
+        };
+
+        // 如果没有指定语言，使用自动检测
+        if (!lang) {
           let autoLanguage = hljs.highlightAuto(preCode.text());
-          preCode.removeClass("language-" + lang);
-          lang = autoLanguage.language;
-          if (lang === undefined) {
-            lang = "java";
-          }
-          preCode.addClass("language-" + lang);
+          lang = autoLanguage.language || "plaintext";
         } else {
-          lang = language.name;
+          // 处理语言别名
+          let normalizedLang = lang.toLowerCase();
+          if (languageAliases[normalizedLang]) {
+            normalizedLang = languageAliases[normalizedLang];
+          }
+
+          // 检测语言是否存在
+          let language = hljs.getLanguage(normalizedLang);
+          if (!language) {
+            // 语言不存在，使用自动检测
+            let autoLanguage = hljs.highlightAuto(preCode.text());
+            lang = autoLanguage.language || "plaintext";
+          } else {
+            lang = normalizedLang;
+          }
         }
 
         $(item).addClass("highlight-wrap");
         $(item).attr(attributes);
         preCode.attr("data-rel", lang.toUpperCase()).addClass(lang.toLowerCase());
-        // 启用代码高亮
-        hljs.highlightBlock(preCode[0]);
+
+        // 启用代码高亮 - 使用新的API
+        try {
+          hljs.highlightElement(preCode[0]);
+        } catch (e) {
+          // 如果新API不存在，尝试旧API
+          try {
+            hljs.highlightBlock(preCode[0]);
+          } catch (e2) {
+            console.warn('代码高亮失败:', e2);
+          }
+        }
+
         // 启用代码行号
-        hljs.lineNumbersBlock(preCode[0]);
+        if (typeof window.hljs.lineNumbersBlock === 'function') {
+          window.hljs.lineNumbersBlock(preCode[0]);
+        }
       });
 
       $("pre code").each(function (i, block) {
@@ -299,7 +352,11 @@ export default {
           i +
           '"><i class="fa fa-clipboard" aria-hidden="true"></i></a>'
         );
-        new ClipboardJS(".copy-code");
+
+        // 检查ClipboardJS是否已加载
+        if (typeof ClipboardJS !== 'undefined') {
+          new ClipboardJS(".copy-code");
+        }
       });
 
       if ($(".entry-content").children("table").length > 0) {

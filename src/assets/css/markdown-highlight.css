@@ -256,7 +256,7 @@
 }
 
 .hljs-ln-line.hljs-ln-code {
-    padding-left: 25px;
+    padding-left: 45px;
     padding-right: 10px;
 }
 
@@ -270,8 +270,9 @@
     color: #888f96;
     position: absolute;
     left: 0;
-    width: 30px;
+    width: 40px;
     background: #1d1f21;
+    border-right: 1px solid #444;
 }
 
 .hljs-comment,
