@@ -34,7 +34,10 @@
         <!-- 标题 -->
         <el-tooltip placement="top" effect="light">
           <div slot="content">{{ article.articleTitle }}</div>
-          <h3>{{ article.articleTitle }}</h3>
+          <h3>
+            {{ article.articleTitle }}
+            <span v-if="article.status === 0" class="draft-badge">草稿</span>
+          </h3>
         </el-tooltip>
 
         <!-- 内容 -->
@@ -186,6 +189,17 @@ export default {
   padding: 0 20px;
   background: var(--maxMaxWhiteMask);
   border-radius: 15px;
+}
+
+.draft-badge {
+  display: inline-block;
+  background-color: #f56c6c;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  margin-left: 8px;
+  font-weight: normal;
 }
 
 @media screen and (max-width: 1400px) {

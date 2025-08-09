@@ -11,7 +11,10 @@
         </el-image>
         <!-- 文章信息 -->
         <div class="article-info-container">
-          <div class="article-title">{{ article.title }}</div>
+          <div class="article-title">
+            {{ article.title }}
+            <span v-if="article.status === 0" class="draft-badge">草稿</span>
+          </div>
           <div class="article-info">
             <svg viewBox="0 0 1024 1024" width="14" height="14" style="vertical-align: -2px;">
               <path
@@ -551,6 +554,17 @@ blockquote {
   line-height: 2.5;
   padding: 0 30px 10px;
   font-size: 16px;
+}
+
+.draft-badge {
+  display: inline-block;
+  background-color: #f56c6c;
+  color: white;
+  font-size: 14px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  margin-left: 10px;
+  font-weight: normal;
 }
 
 @media screen and (max-width: 700px) {

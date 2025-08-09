@@ -218,6 +218,7 @@ export default {
                 likeCount: article.likeCount || 0,
                 sortId: article.categoryId,
                 labelId: article.labelId,
+                status: article.status || 1, // 添加文章状态字段
                 sort: {
                   sortName: article.categoryName || '未分类'
                 },

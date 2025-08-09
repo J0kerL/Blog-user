@@ -186,7 +186,8 @@
                 tags: Array.isArray(article.tags) ? article.tags : (article.tags ? article.tags.split(',').map(tag => tag.trim()) : []),
                 hasVideo: article.hasVideo || false,
                 createTime: article.createTime,
-                updateTime: article.updateTime
+                updateTime: article.updateTime,
+                status: article.status || 1 // 添加文章状态字段
               }));
 
               // 如果是标签查询，在前端进行过滤
