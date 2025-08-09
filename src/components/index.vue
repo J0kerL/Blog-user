@@ -204,7 +204,7 @@ export default {
                 id: article.id,
                 articleTitle: article.title || article.articleTitle || '无标题',
                 articleCover: article.cover || article.articleCover || require('@/assets/images/top-bg.png'),
-                articleContent: article.content || article.summary || article.articleContent || '暂无内容摘要',
+                articleContent: article.summary || article.content || article.articleContent || '暂无内容摘要',
                 categoryId: article.categoryId,
                 categoryName: article.categoryName || '未分类',
                 authorName: article.authorName || 'Diamond',

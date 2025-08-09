@@ -1,15 +1,9 @@
 <template>
   <div class="card-container" v-if="!$common.isEmpty(resourcePathList)">
-    <div v-for="(resourcePath, index) in resourcePathList"
-         :key="index"
-         class="card-item shadow-box wow"
-         @click="clickResourcePath(resourcePath)">
+    <div v-for="(resourcePath, index) in resourcePathList" :key="index" class="card-item shadow-box wow"
+      @click="clickResourcePath(resourcePath)">
       <div class="card-image">
-        <el-image class="my-el-image"
-                  v-once
-                  lazy
-                  :src="resourcePath.cover"
-                  fit="cover">
+        <el-image class="my-el-image" v-once lazy :src="resourcePath.cover" fit="cover">
           <div slot="error" class="image-slot myCenter" style="background-color: var(--lightGreen)">
             <div class="error-text">
               <div>遇事不决，可问春风</div>
@@ -22,10 +16,10 @@
           <span v-if="resourcePath.recommendStatus">
             🔥
           </span>
-          {{resourcePath.title}}
+          {{ resourcePath.title }}
         </div>
         <div class="card-desc">
-          {{resourcePath.introduction}}
+          {{ resourcePath.introduction }}
         </div>
 
         <div class="card-time">
@@ -46,116 +40,114 @@
 </template>
 
 <script>
-  export default {
-    props: {
-      resourcePathList: {
-        type: Array
-      }
-    },
+export default {
+  props: {
+    resourcePathList: {
+      type: Array
+    }
+  },
 
-    data() {
-      return {}
-    },
+  data() {
+    return {}
+  },
 
-    computed: {},
+  computed: {},
 
-    watch: {},
+  watch: {},
 
-    created() {
+  created() {
 
-    },
+  },
 
-    mounted() {
+  mounted() {
 
-    },
+  },
 
-    methods: {
-      clickResourcePath(resourcePath) {
-        this.$emit("clickResourcePath", resourcePath.url);
-      }
+  methods: {
+    clickResourcePath(resourcePath) {
+      this.$emit("clickResourcePath", resourcePath.url);
     }
   }
+}
 </script>
 
 <style scoped>
+.card-container {
+  display: flex;
+  flex-wrap: wrap;
+}
 
-  .card-container {
-    display: flex;
-    flex-wrap: wrap;
-  }
+.card-item {
+  position: relative;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, .88);
+  overflow: hidden;
+  margin: 10px;
+  height: 300px;
+  flex-shrink: 0;
+  width: calc(100% / 3 - 20px);
+  cursor: pointer;
+  animation: zoomIn 0.8s ease-in-out;
+}
 
+.card-image {
+  width: 100%;
+  height: 180px;
+}
+
+.card-image>>>.el-image__inner {
+  transition: all 1s;
+}
+
+.card-image>>>.el-image__inner:hover {
+  transform: scale(1.2);
+}
+
+.card-body {
+  padding: 10px 20px;
+}
+
+.card-title {
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 10px;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  transition: all .2s ease-in-out;
+}
+
+.card-title:hover {
+  color: var(--lightGreen);
+}
+
+.card-desc {
+  font-size: 14px;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  letter-spacing: 1px;
+}
+
+.card-time {
+  position: absolute;
+  bottom: 10px;
+  font-size: 12px;
+  color: var(--greyFont);
+}
+
+@media screen and (max-width: 700px) {
   .card-item {
-    position: relative;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, .88);
-    overflow: hidden;
-    margin: 10px;
-    height: 300px;
-    flex-shrink: 0;
-    width: calc(100% / 3 - 20px);
-    cursor: pointer;
-    animation: zoomIn 0.8s ease-in-out;
+    width: calc(100% / 2 - 20px);
   }
+}
 
-  .card-image {
-    width: 100%;
-    height: 180px;
+@media screen and (max-width: 500px) {
+  .card-item {
+    width: calc(100% - 20px);
   }
-
-  .card-image >>> .el-image__inner {
-    transition: all 1s;
-  }
-
-  .card-image >>> .el-image__inner:hover {
-    transform: scale(1.2);
-  }
-
-  .card-body {
-    padding: 10px 20px;
-  }
-
-  .card-title {
-    font-size: 18px;
-    font-weight: 600;
-    margin-bottom: 10px;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    overflow: hidden;
-    transition: all .2s ease-in-out;
-  }
-
-  .card-title:hover {
-    color: var(--lightGreen);
-  }
-
-  .card-desc {
-    font-size: 14px;
-    line-height: 1.5;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    letter-spacing: 1px;
-  }
-
-  .card-time {
-    position: absolute;
-    bottom: 10px;
-    font-size: 12px;
-    color: var(--greyFont);
-  }
-
-  @media screen and (max-width: 700px) {
-    .card-item {
-      width: calc(100% / 2 - 20px);
-    }
-  }
-
-  @media screen and (max-width: 500px) {
-    .card-item {
-      width: calc(100% - 20px);
-    }
-  }
-
+}
 </style>

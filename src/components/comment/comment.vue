@@ -33,36 +33,36 @@
            v-for="(item, index) in comments"
            :key="index">
         <!-- 头像 -->
-        <el-avatar shape="square" class="commentInfo-avatar" :size="35" :src="item.avatar"></el-avatar>
+        <el-avatar shape="square" class="commentInfo-avatar" :size="35" :src="item.userAvatar"></el-avatar>
 
         <div style="flex: 1;padding-left: 12px">
           <!-- 评论信息 -->
           <div style="display: flex;justify-content: space-between">
             <div>
               <span class="commentInfo-username">{{ item.username }}</span>
-              <span class="commentInfo-master" v-if="item.userId === userId">主人翁</span>
+              <span class="commentInfo-master" v-if="item.userId === currentUserId">主人翁</span>
               <span class="commentInfo-other">{{ $common.getDateDiff(item.createTime) }}</span>
             </div>
             <div class="commentInfo-reply" @click="replyDialog(item, item)">
-              <span v-if="item.childComments.total > 0">{{item.childComments.total}} </span><span>回复</span>
+              <span v-if="item.childCommentCount > 0">{{item.childCommentCount}} </span><span>回复</span>
             </div>
           </div>
           <!-- 评论内容 -->
           <div class="commentInfo-content">
-            <span v-html="item.commentContent"></span>
+            <span v-html="item.content"></span>
           </div>
           <!-- 回复模块 -->
           <div v-if="!$common.isEmpty(item.childComments) && !$common.isEmpty(item.childComments.records)">
             <div class="commentInfo-detail" v-for="(childItem, i) in item.childComments.records" :key="i">
               <!-- 头像 -->
-              <el-avatar shape="square" class="commentInfo-avatar" :size="30" :src="childItem.avatar"></el-avatar>
+              <el-avatar shape="square" class="commentInfo-avatar" :size="30" :src="childItem.userAvatar"></el-avatar>
 
               <div style="flex: 1;padding-left: 12px">
                 <!-- 评论信息 -->
                 <div style="display: flex;justify-content: space-between">
                   <div>
                     <span class="commentInfo-username-small">{{ childItem.username }}</span>
-                    <span class="commentInfo-master" v-if="childItem.userId === userId">主人翁</span>
+                    <span class="commentInfo-master" v-if="childItem.userId === currentUserId">主人翁</span>
                     <span class="commentInfo-other">{{ $common.getDateDiff(childItem.createTime) }}</span>
                   </div>
                   <div>
@@ -71,19 +71,15 @@
                 </div>
                 <!-- 评论内容 -->
                 <div class="commentInfo-content">
-                  <template v-if="childItem.parentCommentId !== item.id &&
-                                  childItem.parentUserId !== childItem.userId">
-                    <span style="color: var(--blue)">@{{ childItem.parentUsername }} </span>:
-                  </template>
-                  <span v-html="childItem.commentContent"></span>
+                  <span v-html="childItem.content"></span>
                 </div>
               </div>
             </div>
-            <!-- 分页 -->
-            <div class="pagination-wrap" v-if="item.childComments.records.length < item.childComments.total">
+            <!-- 查看更多子评论按钮 -->
+            <div class="pagination-wrap" v-if="item.childComments && item.childComments.records && item.childComments.records.length > 0 && item.childComments.records.length < item.childCommentCount">
               <div class="pagination"
-                   @click="toChildPage(item)">
-                展开
+                   @click="loadMoreChildComments(item)">
+                查看更多回复
               </div>
             </div>
           </div>
@@ -138,14 +134,16 @@
       type: {
         type: String
       },
-      userId: {
-        type: Number
+      // 新增：从父组件接收评论总数，避免重复获取
+      commentCount: {
+        type: Number,
+        default: 0
       }
     },
     data() {
       return {
         isGraffiti: false,
-        total: 0,
+        total: this.commentCount,
         replyDialogVisible: false,
         floorComment: {},
         replyComment: {},
@@ -161,11 +159,18 @@
       };
     },
 
-    computed: {},
+    computed: {
+      currentUserId() {
+        return this.$store.state.currentUser?.id || null;
+      }
+    },
 
     created() {
       this.getComments(this.pagination);
-      this.getTotal();
+      // 如果父组件已提供评论总数，则不再调用getTotal
+      if (!this.commentCount) {
+        this.getTotal();
+      }
     },
     methods: {
       toPage(page) {
@@ -176,25 +181,29 @@
         this.getComments(this.pagination);
       },
       getTotal() {
-        // 后端暂未实现评论数量接口，使用虚拟数据
-        // 可以根据评论列表的长度来估算总数
-        this.total = this.comments.length || 0;
-        
-        // 如果需要更准确的数量，可以在获取评论列表时从分页信息中获取
-        // this.$http.get(this.$constant.baseURL + "/comment/getCommentCount", {source: this.source, type: this.type})
-        //   .then((res) => {
-        //     if (!this.$common.isEmpty(res.data)) {
-        //       this.total = res.data;
-        //     }
-        //   })
-        //   .catch((error) => {
-        //     this.$message({
-        //       message: error.message,
-        //       type: "error"
-        //     });
-        //   });
+        // 实时获取评论总数（包括子评论）
+        this.$http.get(this.$constant.baseURL + "/comment/count/" + this.source)
+          .then((res) => {
+            if (res.code === 200 && res.data !== null) {
+              this.total = res.data;
+            } else {
+              this.total = 0;
+            }
+          })
+          .catch((error) => {
+            console.error('获取评论总数失败:', error);
+            this.total = 0;
+          });
       },
       toChildPage(floorComment) {
+        // 确保childComments对象存在并初始化current属性
+        if (!floorComment.childComments) {
+          floorComment.childComments = { current: 1, records: [], total: 0 };
+        }
+        if (!floorComment.childComments.current) {
+          floorComment.childComments.current = 1;
+        }
+        
         floorComment.childComments.current += 1;
         let pagination = {
           current: floorComment.childComments.current,
@@ -208,29 +217,55 @@
       },
       emoji(comments, flag) {
         comments.forEach(c => {
-          c.commentContent = c.commentContent.replace(/\n/g, '<br/>');
-          c.commentContent = this.$common.faceReg(c.commentContent);
-          c.commentContent = this.$common.pictureReg(c.commentContent);
+          if (c.content) {
+            c.content = c.content.replace(/\n/g, '<br/>');
+            c.content = this.$common.faceReg(c.content);
+            c.content = this.$common.pictureReg(c.content);
+          }
           if (flag) {
             if (!this.$common.isEmpty(c.childComments) && !this.$common.isEmpty(c.childComments.records)) {
               c.childComments.records.forEach(cc => {
-                c.commentContent = c.commentContent.replace(/\n/g, '<br/>');
-                cc.commentContent = this.$common.faceReg(cc.commentContent);
-                cc.commentContent = this.$common.pictureReg(cc.commentContent);
+                if (cc.content) {
+                  cc.content = cc.content.replace(/\n/g, '<br/>');
+                  cc.content = this.$common.faceReg(cc.content);
+                  cc.content = this.$common.pictureReg(cc.content);
+                }
               });
             }
           }
         });
       },
       getComments(pagination, floorComment = {}, isToPage = false) {
-        this.$http.get(this.$constant.baseURL + "/comment/page", pagination)
+        // 构建符合后端接口的查询参数
+        let queryParams = {
+          page: pagination.current, // 后端使用page
+          pageSize: pagination.size, // 后端使用pageSize
+          articleId: pagination.source // 后端使用articleId
+        };
+
+        // 如果是查询子评论，需要设置parentId
+        if (pagination.floorCommentId) {
+          queryParams.parentId = pagination.floorCommentId;
+        }
+
+        this.$http.get(this.$constant.baseURL + "/comment/page", queryParams)
           .then((res) => {
-            if (!this.$common.isEmpty(res.data) && !this.$common.isEmpty(res.data.records)) {
+            if (!this.$common.isEmpty(res.data)) {
               if (this.$common.isEmpty(floorComment)) {
-                this.comments = res.data.records;
-                pagination.total = res.data.total;
+                // 主评论处理
+                this.comments = res.data.records || [];
+                this.pagination.total = res.data.total || 0;
+                this.total = this.pagination.total; // 更新总数
                 this.emoji(this.comments, true);
+                
+                // 为每个主评论默认加载前两条子评论
+                this.comments.forEach(comment => {
+                  if (comment.childCommentCount > 0) {
+                    this.loadDefaultChildComments(comment);
+                  }
+                });
               } else {
+                // 子评论处理
                 if (isToPage === false) {
                   floorComment.childComments = res.data;
                 } else {
@@ -242,30 +277,41 @@
               this.$nextTick(() => {
                 this.$common.imgShow("#comment-content .pictureReg");
               });
+            } else {
+              // 没有评论数据时的处理
+              if (this.$common.isEmpty(floorComment)) {
+                this.comments = [];
+                this.pagination.total = 0;
+                this.total = 0;
+              }
             }
           })
           .catch((error) => {
-            this.$message({
-              message: error.message,
-              type: "error"
-            });
+            console.error('获取评论失败:', error);
+            // 不显示错误消息，避免干扰用户体验
+            if (this.$common.isEmpty(floorComment)) {
+              this.comments = [];
+              this.pagination.total = 0;
+              this.total = 0;
+            }
           });
       },
       addGraffitiComment(graffitiComment) {
         this.submitComment(graffitiComment);
       },
       submitComment(commentContent) {
+        // 构建符合后端接口的评论数据
         let comment = {
-          source: this.source,
-          type: this.type,
-          commentContent: commentContent
+          articleId: this.source, // 后端使用articleId
+          content: commentContent, // 后端使用content
+          parentId: null // 主评论的parentId为null
         };
 
         this.$http.post(this.$constant.baseURL + "/comment/add", comment)
           .then((res) => {
             this.$message({
               type: 'success',
-              message: '保存成功！'
+              message: '评论发表成功！'
             });
             this.pagination = {
               current: 1,
@@ -276,7 +322,10 @@
               floorCommentId: null
             }
             this.getComments(this.pagination);
+            // 如果父组件提供了评论总数，则重新获取总数以保持一致
             this.getTotal();
+            // 通知父组件评论数已更新
+            this.$emit('comment-count-updated', this.total);
           })
           .catch((error) => {
             this.$message({
@@ -286,29 +335,37 @@
           });
       },
       submitReply(commentContent) {
+        // 构建符合后端接口的回复评论数据
         let comment = {
-          source: this.source,
-          type: this.type,
-          floorCommentId: this.floorComment.id,
-          commentContent: commentContent,
-          parentCommentId: this.replyComment.id,
-          parentUserId: this.replyComment.userId
+          articleId: this.source, // 后端使用articleId
+          content: commentContent, // 后端使用content
+          // 如果回复的是主评论，parentId就是主评论的id
+          // 如果回复的是子评论，parentId应该是主评论的id（floorComment.id）
+          parentId: this.floorComment.id // 统一回复到主评论下
         };
 
         let floorComment = this.floorComment;
 
         this.$http.post(this.$constant.baseURL + "/comment/add", comment)
           .then((res) => {
+            this.$message({
+              type: 'success',
+              message: '回复发表成功！'
+            });
+            
+            // 重新加载主评论的子评论
             let pagination = {
               current: 1,
-              size: 5,
+              size: Math.max(2, floorComment.childComments ? floorComment.childComments.records.length + 1 : 2),
               total: 0,
               source: this.source,
               commentType: this.type,
               floorCommentId: floorComment.id
             }
-            this.getComments(pagination, floorComment);
+            this.getComments(pagination, floorComment, false);
             this.getTotal();
+            // 通知父组件评论数已更新
+            this.$emit('comment-count-updated', this.total);
           })
           .catch((error) => {
             this.$message({
@@ -317,6 +374,57 @@
             });
           });
         this.handleClose();
+      },
+      loadDefaultChildComments(floorComment) {
+        // 默认加载前两条子评论
+        if (!floorComment.childComments) {
+          this.$set(floorComment, 'childComments', { current: 1, records: [], total: 0 });
+        }
+        
+        let pagination = {
+          current: 1,
+          size: 2, // 默认只加载2条
+          total: 0,
+          source: this.source,
+          commentType: this.type,
+          floorCommentId: floorComment.id
+        }
+        this.getComments(pagination, floorComment, false);
+      },
+      loadMoreChildComments(floorComment) {
+        // 加载更多子评论
+        if (!floorComment.childComments) {
+          this.$set(floorComment, 'childComments', { current: 1, records: [], total: 0 });
+        }
+        
+        // 计算下一页
+        const nextPage = Math.floor(floorComment.childComments.records.length / 5) + 1;
+        
+        let pagination = {
+          current: nextPage,
+          size: 5,
+          total: 0,
+          source: this.source,
+          commentType: this.type,
+          floorCommentId: floorComment.id
+        }
+        this.getComments(pagination, floorComment, true); // 使用追加模式
+      },
+      loadChildComments(floorComment) {
+        // 加载所有子评论
+        if (!floorComment.childComments) {
+          this.$set(floorComment, 'childComments', { current: 1, records: [], total: 0 });
+        }
+        
+        let pagination = {
+          current: 1,
+          size: 5,
+          total: 0,
+          source: this.source,
+          commentType: this.type,
+          floorCommentId: floorComment.id
+        }
+        this.getComments(pagination, floorComment, false);
       },
       replyDialog(comment, floorComment) {
         this.replyComment = comment;

@@ -8,10 +8,38 @@ import store from "../store";
 
 axios.defaults.baseURL = "/api";
 
+// 获取有效的用户token
+function getValidUserToken() {
+  const userTokenData = localStorage.getItem("userToken");
+  if (!userTokenData) return null;
+  
+  try {
+    const tokenObj = JSON.parse(userTokenData);
+    // 检查token是否过期
+    if (tokenObj.expiry && new Date().getTime() > tokenObj.expiry) {
+      // token已过期，清除登录状态
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("currentUser");
+      store.commit("loadCurrentUser", {});
+      return null;
+    }
+    return tokenObj.token;
+  } catch (e) {
+    // 兼容旧版本的token格式（直接是token字符串）
+    return userTokenData;
+  }
+}
+
 
 // 添加请求拦截器
 axios.interceptors.request.use(function (config) {
   // 在发送请求之前做些什么
+  // 自动为所有请求添加token（如果存在）
+  const userToken = getValidUserToken();
+  if (userToken && !config.headers["Authorization"]) {
+    config.headers["Authorization"] = userToken;
+  }
+  
   return config;
 }, function (error) {
   // 对请求错误做些什么
@@ -21,20 +49,43 @@ axios.interceptors.request.use(function (config) {
 // 添加响应拦截器
 axios.interceptors.response.use(function (response) {
   if (response.data !== null && response.data.hasOwnProperty("code") && response.data.code !== 200) {
-    if (response.data.code === 300) {
+    if (response.data.code === 300 || response.data.code === 401) {
       store.commit("loadCurrentUser", {});
       localStorage.removeItem("userToken");
-      store.commit("loadCurrentAdmin", {});
-      localStorage.removeItem("adminToken");
+      localStorage.removeItem("currentUser");
       window.location.href = constant.webURL + "/user";
     }
-    return Promise.reject(new Error(response.data.message));
+    return Promise.reject(new Error(response.data.message || "请求失败"));
   } else {
     return response;
   }
 }, function (error) {
-  // 对响应错误做点什么
-  return Promise.reject(error);
+  // 处理HTTP状态码错误
+  if (error.response) {
+    const status = error.response.status;
+    const data = error.response.data;
+    
+    if (status === 401) {
+      store.commit("loadCurrentUser", {});
+      localStorage.removeItem("userToken");
+      localStorage.removeItem("currentUser");
+      return Promise.reject(new Error("用户未登录或登录已过期"));
+    } else if (status === 403) {
+      return Promise.reject(new Error("权限不足"));
+    } else if (status === 404) {
+      return Promise.reject(new Error("请求的资源不存在"));
+    } else if (status === 500) {
+      return Promise.reject(new Error("服务器内部错误"));
+    } else {
+      return Promise.reject(new Error(data?.message || `请求失败 (${status})`));
+    }
+  } else if (error.request) {
+    // 网络错误
+    return Promise.reject(new Error("网络连接失败，请检查网络"));
+  } else {
+    // 其他错误
+    return Promise.reject(new Error(error.message || "请求失败"));
+  }
 });
 
 // 当data为URLSearchParams对象时设置为application/x-www-form-urlencoded;charset=utf-8
@@ -42,19 +93,12 @@ axios.interceptors.response.use(function (response) {
 
 
 export default {
-  post(url, params = {}, isAdmin = false, json = true) {
+  post(url, params = {}, json = true) {
     let config = { headers: {} };
     
-    if (isAdmin) {
-      const adminToken = localStorage.getItem("adminToken");
-      if (adminToken) {
-        config.headers["Authorization"] = adminToken;
-      }
-    } else {
-      const userToken = localStorage.getItem("userToken");
-      if (userToken) {
-        config.headers["Authorization"] = userToken;
-      }
+    const userToken = getValidUserToken();
+    if (userToken) {
+      config.headers["Authorization"] = userToken;
     }
 
     return new Promise((resolve, reject) => {
@@ -69,19 +113,12 @@ export default {
     });
   },
 
-  get(url, params = {}, isAdmin = false) {
+  get(url, params = {}) {
     let headers = {};
     
-    if (isAdmin) {
-      const adminToken = localStorage.getItem("adminToken");
-      if (adminToken) {
-        headers["Authorization"] = adminToken;
-      }
-    } else {
-      const userToken = localStorage.getItem("userToken");
-      if (userToken) {
-        headers["Authorization"] = userToken;
-      }
+    const userToken = getValidUserToken();
+    if (userToken) {
+      headers["Authorization"] = userToken;
     }
 
     return new Promise((resolve, reject) => {
@@ -96,19 +133,12 @@ export default {
     });
   },
 
-  put(url, params = {}, isAdmin = false, json = true) {
+  put(url, params = {}, json = true) {
     let config = { headers: {} };
     
-    if (isAdmin) {
-      const adminToken = localStorage.getItem("adminToken");
-      if (adminToken) {
-        config.headers["Authorization"] = adminToken;
-      }
-    } else {
-      const userToken = localStorage.getItem("userToken");
-      if (userToken) {
-        config.headers["Authorization"] = userToken;
-      }
+    const userToken = getValidUserToken();
+    if (userToken) {
+      config.headers["Authorization"] = userToken;
     }
 
     return new Promise((resolve, reject) => {
@@ -123,22 +153,15 @@ export default {
     });
   },
 
-  delete(url, params = {}, isAdmin = false) {
+  delete(url, params = {}) {
     let config = {
       headers: {},
       params: params
     };
     
-    if (isAdmin) {
-      const adminToken = localStorage.getItem("adminToken");
-      if (adminToken) {
-        config.headers["Authorization"] = adminToken;
-      }
-    } else {
-      const userToken = localStorage.getItem("userToken");
-      if (userToken) {
-        config.headers["Authorization"] = userToken;
-      }
+    const userToken = getValidUserToken();
+    if (userToken) {
+      config.headers["Authorization"] = userToken;
     }
 
     return new Promise((resolve, reject) => {
@@ -153,23 +176,17 @@ export default {
     });
   },
 
-  upload(url, param, isAdmin = false, option) {
+  upload(url, param, option) {
     let config = {
       headers: {"Content-Type": "multipart/form-data"},
       timeout: 60000
     };
     
-    if (isAdmin) {
-      const adminToken = localStorage.getItem("adminToken");
-      if (adminToken) {
-        config.headers["Authorization"] = adminToken;
-      }
-    } else {
-      const userToken = localStorage.getItem("userToken");
-      if (userToken) {
-        config.headers["Authorization"] = userToken;
-      }
+    const userToken = getValidUserToken();
+    if (userToken) {
+      config.headers["Authorization"] = userToken;
     }
+    
     if (typeof option !== "undefined") {
       config.onUploadProgress = progressEvent => {
         if (progressEvent.total > 0) {
@@ -200,6 +217,49 @@ export default {
     return new Promise((resolve, reject) => {
       axios
         .post(url, param, config)
+        .then(res => {
+          resolve(res.data);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  },
+
+  // 不带token的请求方法，用于登录、注册等公开接口
+  postWithoutToken(url, params = {}, json = true) {
+    let config = { headers: {} };
+
+    return new Promise((resolve, reject) => {
+      axios
+        .post(url, json ? params : qs.stringify(params), config)
+        .then(res => {
+          resolve(res.data);
+        })
+        .catch(err => {
+          reject(err);
+        });
+    });
+  },
+
+  getWithoutToken(url, params = {}) {
+    return new Promise((resolve, reject) => {
+      axios.get(url, {
+        params: params
+      }).then(res => {
+        resolve(res.data);
+      }).catch(err => {
+        reject(err)
+      })
+    });
+  },
+
+  putWithoutToken(url, params = {}, json = true) {
+    let config = { headers: {} };
+
+    return new Promise((resolve, reject) => {
+      axios
+        .put(url, json ? params : qs.stringify(params), config)
         .then(res => {
           resolve(res.data);
         })

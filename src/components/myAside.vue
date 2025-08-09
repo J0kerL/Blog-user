@@ -9,11 +9,13 @@
         <div class="web-info">
           <div class="blog-info-box">
             <span>文章</span>
-            <span class="blog-info-num">{{ isLoggedIn ? userStats.articleCount : (dashboardStats.articleCount || 0) }}</span>
+            <span class="blog-info-num">{{ isLoggedIn ? userStats.articleCount : (dashboardStats.articleCount || 0)
+            }}</span>
           </div>
           <div class="blog-info-box">
             <span>评论</span>
-            <span class="blog-info-num">{{ isLoggedIn ? userStats.commentCount : (dashboardStats.commentCount || 0) }}</span>
+            <span class="blog-info-num">{{ isLoggedIn ? userStats.commentCount : (dashboardStats.commentCount || 0)
+            }}</span>
           </div>
           <div class="blog-info-box">
             <span>{{ isLoggedIn ? '贡献值' : '访问量' }}</span>
@@ -165,12 +167,26 @@ export default {
       this.getUserStats();
     }
   },
+  mounted() {
+    // 组件挂载后再次检查用户登录状态并获取数据
+    this.$nextTick(() => {
+      if (this.isLoggedIn) {
+        setTimeout(() => {
+          this.getUserStats();
+        }, 1000);
+      }
+    });
+  },
   watch: {
     // 监听用户登录状态变化
-    isLoggedIn(newVal) {
+    isLoggedIn(newVal, oldVal) {
       if (newVal) {
-        // 用户登录后，获取个人统计数据
-        this.getUserStats();
+        // 用户登录后，延迟获取个人统计数据，确保用户信息已完全加载
+        this.$nextTick(() => {
+          setTimeout(() => {
+            this.getUserStats();
+          }, 500);
+        });
       } else {
         // 用户退出登录后，清空个人统计数据
         this.userStats = {
@@ -178,11 +194,26 @@ export default {
           commentCount: 0
         };
       }
+    },
+    
+    // 监听store中的currentUser变化
+    '$store.state.currentUser': {
+      handler(newUser, oldUser) {
+        // 如果用户信息发生变化且用户已登录，重新获取统计数据
+        if (!this.$common.isEmpty(newUser) && newUser.username && newUser.id) {
+          this.$nextTick(() => {
+            setTimeout(() => {
+              this.getUserStats();
+            }, 300);
+          });
+        }
+      },
+      deep: true,
+      immediate: false
     }
   },
   methods: {
     selectSort(sort) {
-      console.log('侧边栏点击分类:', sort);
       this.$emit("selectSort", sort);
     },
     selectArticle() {
@@ -207,7 +238,7 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取最新文章失败:", error);
+          // 获取最新文章失败时的处理
         });
     },
     // 获取仪表盘统计数据
@@ -223,7 +254,6 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取仪表盘统计数据失败:", error);
           // 设置默认值
           this.dashboardStats = {
             commentCount: 0,
@@ -253,7 +283,6 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取分类数据失败:", error);
           // 如果API失败，使用默认分类数据
           const defaultCategories = [
             { id: 1, name: "Spring Boot", sortName: "Spring Boot", description: "Spring Boot相关文章", articleCount: 0, sortType: 0 },
@@ -272,8 +301,14 @@ export default {
         return;
       }
 
-      // 调用后端获取当前登录用户的个人统计数据API
-      this.$http.get("/user/stats", {}, false)
+      // 检查token是否存在
+      const tokenData = localStorage.getItem("userToken");
+      if (!tokenData) {
+        return;
+      }
+
+      // 直接调用用户统计接口（后端已实现）
+      this.$http.get("/user/stats")
         .then((res) => {
           if (res.code === 200 && !this.$common.isEmpty(res.data)) {
             this.userStats = {
@@ -283,14 +318,20 @@ export default {
           }
         })
         .catch((error) => {
-          console.error("获取用户个人统计数据失败:", error);
-          // 设置默认值
-          this.userStats = {
-            articleCount: 0,
-            commentCount: 0
-          };
+          // 如果是401错误，说明token无效，清除登录状态
+          if (error.message && (error.message.includes("401") || error.message.includes("用户未登录"))) {
+            localStorage.removeItem("userToken");
+            localStorage.removeItem("currentUser");
+            this.$store.commit("loadCurrentUser", {});
+            
+            // 重新加载页面以更新UI状态
+            setTimeout(() => {
+              window.location.reload();
+            }, 1000);
+          }
         });
     },
+
 
   }
 }

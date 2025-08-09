@@ -32,15 +32,7 @@
               d="M654.222222 256c-17.066667 0-28.444444 11.377778-28.444444 28.444444v56.888889c0 17.066667 11.377778 28.444444 28.444444 28.444445s28.444444-11.377778 28.444445-28.444445v-56.888889c0-17.066667-11.377778-28.444444-28.444445-28.444444zM369.777778 256c-17.066667 0-28.444444 11.377778-28.444445 28.444444v56.888889c0 17.066667 11.377778 28.444444 28.444445 28.444445s28.444444-11.377778 28.444444-28.444445v-56.888889c0-17.066667-11.377778-28.444444-28.444444-28.444444z"
               fill="#FFFFFF"></path>
           </svg>
-          {{ article.authorName }}
-        </span>
-        <span v-if="article.createTime">
-          <svg viewBox="0 0 1024 1024" width="14" height="14" style="vertical-align: -2px;">
-            <path
-              d="M512 64C264.6 64 64 264.6 64 512s200.6 448 448 448 448-200.6 448-448S759.4 64 512 64zm176.5 585.7l-28.6 39a7.99 7.99 0 0 1-11.2 1.7L483.3 569.8a7.92 7.92 0 0 1-3.3-6.5V288c0-4.4 3.6-8 8-8h48.1c4.4 0 8 3.6 8 8v247.5l142.8 103.1c3.6 2.5 4.4 7.5 1.8 11.1z"
-              fill="#52c41a"></path>
-          </svg>
-          {{ formatDate(article.createTime) }}
+          {{ article.authorName || article.author || '匿名用户' }}
         </span>
       </div>
 
@@ -51,23 +43,30 @@
 
       <!-- 分类和标签 -->
       <div class="article-tags">
-        <span class="category-tag"
-          @click.stop="$router.push({ path: '/sort', query: { categoryId: article.categoryId } })">
+        <!-- 分类标签 -->
+        <span v-if="article.categoryName || article.category" 
+              class="category-tag"
+              @click.stop="$router.push({ path: '/sort', query: { categoryId: article.categoryId } })">
           <svg viewBox="0 0 1024 1024" width="15" height="15" style="vertical-align: -3px;">
             <path
               d="M179.2 153.6m89.6 0l588.8 0q89.6 0 89.6 89.6l0 486.4q0 89.6-89.6 89.6l-588.8 0q-89.6 0-89.6-89.6l0-486.4q0-89.6 89.6-89.6Z"
               fill="#FF9C55"></path>
           </svg>
-          {{ article.categoryName }}
+          {{ article.categoryName || article.category }}
         </span>
-        <span v-for="(tag, index) in article.tags" :key="index" class="tag">
-          <svg viewBox="0 0 1024 1024" width="15" height="15" style="vertical-align: -3px;">
-            <path
-              d="M905.0112 560.4352l-342.784 342.784c-56.7808 56.7808-148.7872 56.7808-205.568 0l-231.5776-231.5776c-56.7808-56.7808-56.7808-148.7872 0-205.568l342.9376-342.9376a114.8928 114.8928 0 0 1 84.224-33.5872l266.3936 7.2192c60.7744 1.6384 109.7216 50.3808 111.5648 111.1552l8.2944 267.8272c1.024 31.6928-11.1104 62.3104-33.4848 84.6848z"
-              fill="#8C7BFD"></path>
-          </svg>
-          {{ tag }}
-        </span>
+        
+        <!-- 标签列表 -->
+        <template v-if="article.tags && article.tags.length > 0">
+          <span v-for="(tag, index) in article.tags" :key="index" class="tag"
+                @click.stop="handleTagClick(tag)">
+            <svg viewBox="0 0 1024 1024" width="15" height="15" style="vertical-align: -3px;">
+              <path
+                d="M905.0112 560.4352l-342.784 342.784c-56.7808 56.7808-148.7872 56.7808-205.568 0l-231.5776-231.5776c-56.7808-56.7808-56.7808-148.7872 0-205.568l342.9376-342.9376a114.8928 114.8928 0 0 1 84.224-33.5872l266.3936 7.2192c60.7744 1.6384 109.7216 50.3808 111.5648 111.1552l8.2944 267.8272c1.024 31.6928-11.1104 62.3104-33.4848 84.6848z"
+                fill="#8C7BFD"></path>
+            </svg>
+            {{ typeof tag === 'object' ? tag.name : tag }}
+          </span>
+        </template>
       </div>
     </div>
   </div>
@@ -90,6 +89,21 @@ export default {
         year: 'numeric',
         month: '2-digit',
         day: '2-digit'
+      });
+    },
+    
+    handleTagClick(tag) {
+      // 处理标签点击事件，阻止冒泡到文章卡片
+      const tagName = typeof tag === 'object' ? tag.name : tag;
+      const tagId = typeof tag === 'object' ? tag.id : null;
+      
+      // 跳转到标签对应的文章列表页面
+      this.$router.push({ 
+        path: '/sort', 
+        query: { 
+          tagName: tagName,
+          ...(tagId && { tagId: tagId })
+        } 
       });
     }
   }
@@ -201,7 +215,14 @@ export default {
   border-radius: 4px;
   font-size: 12px;
   color: var(--greyFont);
+  transition: all 0.3s;
+  cursor: pointer;
   user-select: none;
+}
+
+.tag:hover {
+  background-color: var(--themeBackground);
+  color: var(--white);
 }
 
 .error-text {

@@ -75,9 +75,40 @@ export default {
    */
   faceReg(content) {
     content = content.replace(/\[[^\[^\]]+\]/g, (word) => {
-      let index = constant.emojiList.indexOf(word.replace("[", "").replace("]", ""));
+      let emojiName = word.replace("[", "").replace("]", "");
+      let index = constant.emojiList.indexOf(emojiName);
       if (index > -1) {
-        let url = store.state.sysConfig['webStaticResourcePrefix'] + "emoji/q" + (index + 1) + ".gif";
+        let url;
+        // 如果有本地配置，优先使用本地配置
+        if (store.state.sysConfig && store.state.sysConfig['webStaticResourcePrefix']) {
+          url = store.state.sysConfig['webStaticResourcePrefix'] + `emoji/q${index + 1}.gif`;
+        } else {
+          // 使用不同的网络表情资源，为每个表情提供不同的图片
+          const emojiUrls = [
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_mrgreen.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_neutral.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_twisted.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_arrow.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_eek.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_smile.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_confused.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_cool.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_evil.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_biggrin.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_idea.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_redface.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_razz.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_rolleyes.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_wink.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_cry.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_surprised.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_lol.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_mad.gif',
+            'https://cdn.jsdelivr.net/gh/moezx/cdn@3.1.3/img/Sakura/images/smilies/icon_sad.gif'
+          ];
+          // 循环使用表情，如果超出数组长度则重复使用
+          url = emojiUrls[index % emojiUrls.length];
+        }
         return '<img loading="lazy" style="vertical-align: middle;width: 32px;height: 32px" src="' + url + '" title="' + word + '"/>';
       } else {
         return word;

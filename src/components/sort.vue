@@ -148,7 +148,7 @@
       getArticles() {
         const params = {
           page: this.pagination.page,
-          pageSize: this.pagination.pageSize
+          pageSize: this.tagName ? 50 : this.pagination.pageSize // 如果是标签查询，获取更多数据用于前端过滤
         };
 
         // 分类筛选
@@ -156,14 +156,14 @@
           params.categoryId = this.pagination.categoryId;
         }
 
-        // 标签筛选 - 后端接口支持tagId参数
-        if (this.pagination.tagId) {
-          params.tagId = this.pagination.tagId;
+        // 搜索功能（非标签搜索）
+        if (this.pagination.searchKey && !this.tagName) {
+          params.title = this.pagination.searchKey;
         }
 
-        // 搜索功能
-        if (this.pagination.searchKey) {
-          params.title = this.pagination.searchKey;
+        // 标签ID筛选（如果后端支持）
+        if (this.pagination.tagId && !this.tagName) {
+          params.tagId = this.pagination.tagId;
         }
 
         // 注意：后端暂时没有labelId参数，这里先注释掉
@@ -175,22 +175,43 @@
           .then((res) => {
             if (res.code === 200 && !this.$common.isEmpty(res.data)) {
               // 处理文章数据，确保格式正确
-              const articles = res.data.records.map(article => ({
+              let articles = res.data.records.map(article => ({
                 id: article.id,
                 title: article.title,
-                content: article.content || article.summary || '暂无内容摘要',
+                content: article.summary || article.content || '暂无内容摘要',
                 cover: article.cover || require('@/assets/images/top-bg.png'),
                 categoryId: article.categoryId,
                 categoryName: article.categoryName || '未分类',
                 authorName: article.authorName || 'Diamond',
-                tags: article.tags || [],
+                tags: Array.isArray(article.tags) ? article.tags : (article.tags ? article.tags.split(',').map(tag => tag.trim()) : []),
                 hasVideo: article.hasVideo || false,
                 createTime: article.createTime,
                 updateTime: article.updateTime
               }));
 
-              this.articles = this.articles.concat(articles);
-              this.pagination.total = res.data.total;
+              // 如果是标签查询，在前端进行过滤
+              if (this.tagName) {
+                articles = articles.filter(article => {
+                  return article.tags && article.tags.some(tag => 
+                    tag.toLowerCase().includes(this.tagName.toLowerCase()) || 
+                    this.tagName.toLowerCase().includes(tag.toLowerCase())
+                  );
+                });
+                
+                // 对于标签查询，只在第一页时清空数组
+                if (this.pagination.page === 1) {
+                  this.articles = articles;
+                } else {
+                  this.articles = this.articles.concat(articles);
+                }
+                
+                // 设置总数（标签查询时使用过滤后的数量）
+                this.pagination.total = this.articles.length;
+              } else {
+                // 正常的分页追加
+                this.articles = this.articles.concat(articles);
+                this.pagination.total = res.data.total;
+              }
             }
           })
           .catch((error) => {

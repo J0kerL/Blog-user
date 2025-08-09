@@ -4,8 +4,7 @@
     <div v-if="$common.isEmpty(currentUser)" class="myCenter in-up-container my-animation-hideToShow">
       <!-- 背景图片 -->
       <el-image class="my-el-image" style="position: absolute" v-once lazy
-        :src="require('@/assets/images/login-bg.png')"
-        fit="cover">
+        :src="require('@/assets/images/login-bg.png')" fit="cover">
         <div slot="error" class="image-slot"></div>
       </el-image>
       <div class="in-up" id="loginAndRegist">
@@ -214,15 +213,21 @@ export default {
         password: this.password.trim()
       };
 
-      // 登录请求不需要token，使用原生axios避免自动添加Authorization头
-      this.$http.post(this.$constant.baseURL + "/user/login", loginData, false, true)
+      // 登录请求不需要token
+      this.$http.postWithoutToken(this.$constant.baseURL + "/user/login", loginData, true)
         .then((res) => {
           if (res.code === 200 && !this.$common.isEmpty(res.data)) {
             // 先保存token，因为获取用户详细信息需要token
-            localStorage.setItem("userToken", res.data.token);
-            
-            // 登录成功后，调用获取用户详细信息的接口
-            this.$http.get(this.$constant.baseURL + "/user/" + res.data.username)
+            // 设置token过期时间为1小时，与后端保持一致
+            const tokenExpiry = new Date().getTime() + 3600000; // 1小时后过期
+            const tokenData = {
+              token: res.data.token,
+              expiry: tokenExpiry
+            };
+            localStorage.setItem("userToken", JSON.stringify(tokenData));
+
+            // 登录成功后，调用获取用户详细信息的接口（使用不带token的方法，因为这是公开接口）
+            this.$http.getWithoutToken(this.$constant.baseURL + "/user/" + res.data.username)
               .then((userRes) => {
                 if (userRes.code === 200 && !this.$common.isEmpty(userRes.data)) {
                   // 合并登录返回的基本信息和详细用户信息
@@ -230,51 +235,69 @@ export default {
                     ...res.data,  // 包含id, username, email, token
                     ...userRes.data  // 包含完整的用户信息（包括avatar等）
                   };
-                  
-                  // 保存完整用户信息到store
+
+                  // 保存完整用户信息到store和localStorage
                   this.$store.commit("loadCurrentUser", completeUserInfo);
                   // 更新组件的currentUser引用
                   this.currentUser = this.$store.state.currentUser;
-                  
+
+
                   this.$message({
                     message: res.message || "登录成功！",
                     type: "success"
                   });
-                  
+
                   // 清空表单
                   this.account = "";
                   this.password = "";
-                  
-                  // 跳转到首页
-                  this.$router.push({ path: '/' });
+
+                  // 延迟跳转，确保状态更新完成
+                  this.$nextTick(() => {
+                    setTimeout(() => {
+                      this.$router.push({ path: '/' });
+                    }, 500);
+                  });
                 } else {
                   // 如果获取用户详细信息失败，至少保存基本登录信息
                   this.$store.commit("loadCurrentUser", res.data);
                   this.currentUser = this.$store.state.currentUser;
-                  
+
+
                   this.$message({
                     message: "登录成功，但获取用户详细信息失败！",
                     type: "warning"
                   });
-                  
+
                   this.account = "";
                   this.password = "";
-                  this.$router.push({ path: '/' });
+                  
+                  this.$nextTick(() => {
+                    setTimeout(() => {
+                      this.$router.push({ path: '/' });
+                    }, 500);
+                  });
                 }
               })
               .catch((error) => {
+                console.error("获取用户详细信息失败:", error);
                 // 如果获取用户详细信息失败，至少保存基本登录信息
                 this.$store.commit("loadCurrentUser", res.data);
                 this.currentUser = this.$store.state.currentUser;
-                
+
+
                 this.$message({
                   message: "登录成功，但获取用户详细信息失败！",
                   type: "warning"
                 });
-                
+
                 this.account = "";
                 this.password = "";
-                this.$router.push({ path: '/' });
+                
+                this.$nextTick(() => {
+                  setTimeout(() => {
+                    this.$router.push({ path: '/' });
+                  }, 500);
+                });
               });
           } else {
             this.$message({
@@ -332,20 +355,20 @@ export default {
       };
 
       // 注册请求不需要token
-      this.$http.post(this.$constant.baseURL + "/user/register", registerData, false, true)
+      this.$http.postWithoutToken(this.$constant.baseURL + "/user/register", registerData, true)
         .then((res) => {
           if (res.code === 200 && !this.$common.isEmpty(res.data)) {
             this.$message({
               message: res.message || "注册成功！请使用新账号登录。",
               type: "success"
             });
-            
+
             // 清空表单
             this.username = "";
             this.password = "";
             this.email = "";
             this.code = "";
-            
+
             // 切换到登录页面
             this.signIn();
           } else {
@@ -391,7 +414,7 @@ export default {
                     // 保存更新后的用户信息到store
                     this.$store.commit("loadCurrentUser", userRes.data);
                     this.currentUser = this.$store.state.currentUser;
-                    
+
                     this.$message({
                       message: "修改成功！",
                       type: "success"
@@ -669,49 +692,33 @@ export default {
         return;
       }
 
-      // 先根据账号查询用户信息获取用户ID
-      this.$http.get(this.$constant.baseURL + "/user/" + this.resetAccount.trim(), {}, false)
-        .then((res) => {
-          if (res.code === 200 && !this.$common.isEmpty(res.data)) {
-            // 获取到用户信息，现在可以更新密码
-            let resetData = {
-              id: res.data.id,
-              password: this.resetNewPassword.trim()
-            };
+      // 调用后端忘记密码接口，严格按照后端ForgetPasswordDTO格式
+      let forgetPasswordData = {
+        account: this.resetAccount.trim(),
+        newPassword: this.resetNewPassword.trim(),
+        confirmPassword: this.resetConfirmPassword.trim()
+      };
 
-            // 调用后端修改用户信息接口进行密码重置
-            this.$http.put(this.$constant.baseURL + "/user/update", resetData, false, true)
-              .then((updateRes) => {
-                if (updateRes.code === 200) {
-                  this.$message({
-                    message: updateRes.message || "密码重置成功，请使用新密码登录！",
-                    type: "success"
-                  });
-                  this.clearDialog();
-                  this.signIn();
-                } else {
-                  this.$message({
-                    message: updateRes.message || "密码重置失败！",
-                    type: "error"
-                  });
-                }
-              })
-              .catch((error) => {
-                this.$message({
-                  message: error.message || "密码重置失败，请检查网络连接！",
-                  type: "error"
-                });
-              });
+      // 忘记密码请求不需要token
+      this.$http.putWithoutToken(this.$constant.baseURL + "/user/forgetPassword", forgetPasswordData, true)
+        .then((res) => {
+          if (res.code === 200) {
+            this.$message({
+              message: res.message || "密码重置成功，请使用新密码登录！",
+              type: "success"
+            });
+            this.clearDialog();
+            this.signIn();
           } else {
             this.$message({
-              message: res.message || "用户不存在，请检查用户名或邮箱！",
+              message: res.message || "密码重置失败！",
               type: "error"
             });
           }
         })
         .catch((error) => {
           this.$message({
-            message: error.message || "查询用户失败，请检查网络连接！",
+            message: error.message || "密码重置失败，请检查网络连接！",
             type: "error"
           });
         });
@@ -720,7 +727,7 @@ export default {
     getCode() {
       if (this.codeString === "验证码") {
         let email = "";
-        
+
         // 根据不同的对话框类型获取邮箱
         if (this.dialogTitle === "邮箱验证码" || this.dialogTitle === "找回密码") {
           email = this.email;
@@ -750,14 +757,14 @@ export default {
         }
 
         // 调用后端验证码API，严格按照后端接口格式
-        this.$http.get("/captcha/sendCaptcha", { email: email }, false)
+        this.$http.getWithoutToken("/captcha/sendCaptcha", { email: email })
           .then((res) => {
             if (res.code === 200) {
               this.$message({
                 message: res.message || "验证码已发送，请注意查收！",
                 type: "success"
               });
-              
+
               // 开始倒计时
               this.codeString = "30";
               this.intervalCode = setInterval(() => {
@@ -786,7 +793,7 @@ export default {
             } else if (error.message) {
               errorMessage = error.message;
             }
-            
+
             this.$message({
               message: errorMessage,
               type: "error"

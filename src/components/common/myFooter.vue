@@ -35,6 +35,7 @@
     color: var(--white);
     background-size: 300% 300%;
     animation: gradientBG 10s ease infinite;
+
   }
 
   .footer-title {
